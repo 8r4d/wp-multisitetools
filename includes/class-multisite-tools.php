@@ -20,6 +20,7 @@ final class Multisite_Tools {
 	const MODULES = array(
 		'plugin-usage'    => 'MST_Plugin_Usage',
 		'theme-usage'     => 'MST_Theme_Usage',
+		'toolbar-colors'  => 'MST_Toolbar_Colors',
 		'queuebar'        => 'MST_Queuebar',
 		'default-author'  => 'MST_Default_Author',
 		'copy-post'       => 'MST_Copy_Post',

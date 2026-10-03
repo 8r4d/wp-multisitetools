@@ -146,7 +146,7 @@ class MST_Settings {
 		<form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=' . self::COLORS_ACTION ) ); ?>">
 			<?php wp_nonce_field( self::COLORS_ACTION ); ?>
 
-			<p><?php esc_html_e( 'Each site\'s colour marks it wherever Multisite Multitools lists sites: the Calendar, the Posts by Site widget, and the Plugin and Theme usage columns. Sites without a custom colour get a default based on their ID; use Default to go back to it.', 'multisite-tools' ); ?></p>
+			<p><?php esc_html_e( 'Each site\'s colour marks it wherever Multisite Multitools lists sites: the Calendar, the Posts by Site widget, the Plugin and Theme usage columns and, with Toolbar site colours on, the admin toolbar. Sites without a custom colour get a default based on their ID; use Default to go back to it.', 'multisite-tools' ); ?></p>
 
 			<table class="form-table" role="presentation">
 				<?php
