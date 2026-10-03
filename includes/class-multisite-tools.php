@@ -41,6 +41,8 @@ final class Multisite_Tools {
 		require_once MST_DIR . 'includes/class-mst-settings.php';
 		require_once MST_DIR . 'includes/class-mst-sites.php';
 
+		add_action( 'wp_uninitialize_site', array( 'MST_Sites', 'forget_color' ) );
+
 		// Load every module class so the settings screen can describe them,
 		// but only register the enabled ones.
 		foreach ( self::MODULES as $slug => $class ) {

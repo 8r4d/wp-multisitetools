@@ -23,11 +23,6 @@ class MST_Calendar {
 	 */
 	const PER_SITE_LIMIT = 500;
 
-	/**
-	 * Site colours, assigned in site order and reused after the last one.
-	 */
-	const COLORS = array( '#2271b1', '#d63638', '#00a32a', '#dba617', '#8c5cc7', '#e26f2a', '#1aa3a3', '#c7307c', '#5b6e1f', '#646970' );
-
 	public static function label() {
 		return __( 'Calendar', 'multisite-tools' );
 	}
@@ -536,7 +531,7 @@ class MST_Calendar {
 		$options = MST_Sites::get_options( $sites, array( 'blogname', 'home' ) );
 		$result  = array();
 
-		foreach ( array_values( $sites ) as $i => $site ) {
+		foreach ( $sites as $site ) {
 			$id   = (int) $site->blog_id;
 			$name = (string) ( $options[ $id ]['blogname'] ?? '' );
 
@@ -545,7 +540,7 @@ class MST_Calendar {
 				'name'      => '' !== $name ? $name : MST_Sites::url( $site ),
 				'admin_url' => MST_Sites::admin_url( $site ),
 				'home_url'  => trailingslashit( $options[ $id ]['home'] ?? 'http://' . $site->domain . $site->path ),
-				'color'     => self::COLORS[ $i % count( self::COLORS ) ],
+				'color'     => MST_Sites::color( $id ),
 			);
 		}
 

@@ -112,7 +112,8 @@ class MST_Theme_Usage {
 			$site = $sites[ $site_id ];
 
 			printf(
-				'<li><a href="%s" title="%s">%s</a>%s</li>',
+				'<li>%s<a href="%s" title="%s">%s</a>%s</li>',
+				MST_Sites::swatch( $site_id ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				esc_url( $site['admin_url'] ),
 				esc_attr( $site['url'] ),
 				esc_html( '' !== $site['name'] ? $site['name'] : $site['url'] ),
@@ -129,7 +130,7 @@ class MST_Theme_Usage {
 			.column-<?php echo esc_attr( self::COLUMN ); ?> { width: 16em; }
 			.mst-muted { color: #8c8f94; }
 			.mst-sites summary { cursor: pointer; color: #2271b1; }
-			.mst-sites ul { margin: 4px 0 0 1em; list-style: disc; }
+			.mst-sites ul { margin: 4px 0 0; }
 			.mst-sites li { margin: 0; }
 		</style>
 		<?php

@@ -102,7 +102,8 @@ class MST_Plugin_Usage {
 			$site = $usage['sites'][ $site_id ];
 
 			printf(
-				'<li><a href="%s" title="%s">%s</a>%s</li>',
+				'<li>%s<a href="%s" title="%s">%s</a>%s</li>',
+				MST_Sites::swatch( $site_id ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				esc_url( $site['admin_url'] ),
 				esc_attr( $site['url'] ),
 				esc_html( '' !== $site['name'] ? $site['name'] : $site['url'] ),
@@ -120,7 +121,7 @@ class MST_Plugin_Usage {
 			.mst-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #2271b1; color: #fff; font-size: 12px; }
 			.mst-muted { color: #8c8f94; }
 			.mst-sites summary { cursor: pointer; color: #2271b1; }
-			.mst-sites ul { margin: 4px 0 0 1em; list-style: disc; }
+			.mst-sites ul { margin: 4px 0 0; }
 			.mst-sites li { margin: 0; }
 		</style>
 		<?php

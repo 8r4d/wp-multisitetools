@@ -13,6 +13,17 @@ final class MST_Sites {
 	const CHUNK_SIZE = 100;
 
 	/**
+	 * Network option holding custom site colours, as site ID => hex colour.
+	 */
+	const COLORS_OPTION = 'mst_site_colors';
+
+	/**
+	 * Default site colours, assigned by site ID so a site keeps its colour
+	 * everywhere and for everyone.
+	 */
+	const PALETTE = array( '#2271b1', '#d63638', '#00a32a', '#dba617', '#8c5cc7', '#e26f2a', '#1aa3a3', '#c7307c', '#5b6e1f', '#646970' );
+
+	/**
 	 * Sites in the current network. By default every site, including
 	 * archived, spam and deactivated ones.
 	 *
@@ -157,5 +168,53 @@ final class MST_Sites {
 		}
 
 		return implode( ', ', $labels );
+	}
+
+	/**
+	 * @param int $site_id
+	 * @return string Hex colour.
+	 */
+	public static function default_color( $site_id ) {
+		return self::PALETTE[ ( max( 1, (int) $site_id ) - 1 ) % count( self::PALETTE ) ];
+	}
+
+	/**
+	 * The site's custom colour, or its default.
+	 *
+	 * @param int $site_id
+	 * @return string Hex colour.
+	 */
+	public static function color( $site_id ) {
+		$colors = (array) get_site_option( self::COLORS_OPTION, array() );
+		$color  = sanitize_hex_color( $colors[ (int) $site_id ] ?? '' );
+
+		return $color ? $color : self::default_color( $site_id );
+	}
+
+	/**
+	 * A small square in the site's colour, to put before its name.
+	 *
+	 * @param int $site_id
+	 * @return string HTML.
+	 */
+	public static function swatch( $site_id ) {
+		return sprintf(
+			'<span class="mst-swatch" style="display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; vertical-align: baseline; background: %s;" aria-hidden="true"></span>',
+			esc_attr( self::color( $site_id ) )
+		);
+	}
+
+	/**
+	 * Drops a deleted site's custom colour.
+	 *
+	 * @param WP_Site $site
+	 */
+	public static function forget_color( $site ) {
+		$colors = (array) get_site_option( self::COLORS_OPTION, array() );
+
+		if ( isset( $colors[ (int) $site->blog_id ] ) ) {
+			unset( $colors[ (int) $site->blog_id ] );
+			update_site_option( self::COLORS_OPTION, $colors );
+		}
 	}
 }

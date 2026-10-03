@@ -6,6 +6,7 @@ delete_site_transient( 'mst_queuebar_counts' );
 delete_site_transient( 'mst_theme_usage' );
 delete_site_transient( 'mst_missed_schedule_scan' );
 delete_site_option( 'mst_modules' );
+delete_site_option( 'mst_site_colors' );
 
 // Per-site settings: Default author and Social graph's default image.
 foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $mst_site_id ) {

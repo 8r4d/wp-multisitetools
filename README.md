@@ -10,6 +10,8 @@ Copy this folder to `wp-content/plugins/multisite-tools/` and **Network Activate
 
 **Network Admin › Settings › Multisite Multitools** (also linked from the plugin's row on Network Admin › Plugins) lists every module, grouped into **Network administration**, **Content & publishing**, **Sharing & SEO** and **Security & privacy**, with a checkbox to switch each on or off network-wide. Modules are on by default, including newly added ones, until they're switched off.
 
+The **Site colours** tab sets a colour for each active site, using the standard WordPress colour picker. The colour marks the site wherever the plugin lists sites: the Calendar, the Posts by Site widget, the Plugin and Theme usage columns, and the Copy to site confirmation. Sites without a custom colour get a default from a 10-colour palette based on their site ID, so a site has the same colour on every screen and for every user. **Default** in the picker clears a custom colour. Deleting a site removes its colour.
+
 ## Modules
 
 ### Plugin usage

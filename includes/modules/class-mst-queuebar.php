@@ -154,9 +154,10 @@ class MST_Queuebar {
 					</tr>
 				</thead>
 				<tbody>
-					<?php foreach ( $sites as $site ) : ?>
+					<?php foreach ( $sites as $site_id => $site ) : ?>
 						<tr>
 							<td>
+								<?php echo MST_Sites::swatch( $site_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 								<a href="<?php echo esc_url( $site['admin_url'] . 'edit.php' ); ?>" title="<?php echo esc_attr( $site['url'] ); ?>">
 									<?php echo esc_html( '' !== $site['name'] ? $site['name'] : $site['url'] ); ?>
 								</a>

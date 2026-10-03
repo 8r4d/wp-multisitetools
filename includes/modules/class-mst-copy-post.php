@@ -364,7 +364,7 @@ class MST_Copy_Post {
 				printf(
 					/* translators: %s: site name */
 					esc_html__( 'Copied as a draft to %s.', 'multisite-tools' ),
-					'<strong>' . esc_html( $name ) . '</strong>'
+					MST_Sites::swatch( $site_id ) . '<strong>' . esc_html( $name ) . '</strong>' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				);
 				?>
 				<a href="<?php echo esc_url( get_admin_url( $site_id, 'post.php?post=' . $post_id . '&action=edit' ) ); ?>"><?php esc_html_e( 'Edit the copy', 'multisite-tools' ); ?></a>
