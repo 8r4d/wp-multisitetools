@@ -46,6 +46,15 @@ Adds a **Copy to site…** link to each post and page in the Posts and Pages lis
 
 Images and links inside the content are copied as-is, so they still point to the original site. If the featured image file can't be read (e.g. media is offloaded to S3), the copy is made without it and you're told. Custom fields and custom post types aren't copied. If the target site uses Default author, the copy gets that site's default author.
 
+### Missed schedule fixer
+
+Publishes scheduled posts that WordPress missed. WP-Cron only runs on a site when that site gets a visit, so a quiet site can sit on an overdue post until someone happens by.
+
+- **Scan:** a visit to any site, at most every 5 minutes network-wide, checks every active site for posts more than a minute overdue (one UNION query per 100 sites) and pings each late site's `wp-cron.php` in the background, without slowing the visit.
+- **Publish:** whenever a site's cron runs (pinged or natural), it publishes up to 20 of its own overdue posts. This also catches posts whose scheduled event was lost, which cron alone never publishes. Publishing on the site itself means plugins active only on that site (auto-posters, newsletters) still see the post go live.
+
+It still needs *some* traffic somewhere on the network, and the host must allow WordPress to make requests to its own sites (the same requirement as normal WP-Cron). Server cron is more reliable where available.
+
 ### Social graph
 
 Adds `og:image` and `twitter:image` meta tags (plus `twitter:card` set to `summary_large_image`) to single posts, pages and custom post types, so shared links on Threads, Facebook, X and others show a preview image. It uses the featured image, falling back to the site's **default sharing image** (set per site under **Settings › Reading › Social sharing**), then the site icon; if none exists, no tags are output.

@@ -8,90 +8,115 @@ defined( 'ABSPATH' ) || exit;
 final class MST_Sites {
 
 	/**
-	 * Sites per UNION query when reading options straight from the database.
+	 * Sites per UNION query when querying many sites at once.
 	 */
 	const CHUNK_SIZE = 100;
 
 	/**
-	 * Every site in the current network, including archived, spam and
-	 * deactivated ones.
+	 * Sites in the current network. By default every site, including
+	 * archived, spam and deactivated ones.
 	 *
+	 * @param array $args Extra get_sites() arguments.
 	 * @return WP_Site[]
 	 */
-	public static function all() {
+	public static function all( $args = array() ) {
 		return get_sites(
-			array(
-				'network_id' => get_current_network_id(),
-				'number'     => 0,
+			array_merge(
+				array(
+					'network_id' => get_current_network_id(),
+					'number'     => 0,
+				),
+				$args
 			)
 		);
 	}
 
 	/**
-	 * Reads the given options for many sites, CHUNK_SIZE sites per query,
-	 * avoiding a switch_to_blog() per site. Falls back to get_blog_option() for
-	 * a chunk if its query fails, e.g. a site's tables are missing or live on
-	 * another database server (HyperDB, LudicrousDB).
+	 * Sites in the current network that are public-facing: not archived,
+	 * spam or deactivated.
 	 *
-	 * Values may be serialized strings or, from the fallback, already
-	 * unserialized, so pass them through maybe_unserialize().
-	 *
-	 * @param WP_Site[] $sites
-	 * @param string[]  $names Option names.
-	 * @return array<int, array<string, mixed>> Site ID => option name => value.
+	 * @return WP_Site[]
 	 */
-	public static function get_options( $sites, $names ) {
-		$options = array();
-
-		foreach ( array_chunk( $sites, self::CHUNK_SIZE ) as $chunk ) {
-			$options += self::read_options( $chunk, $names );
-		}
-
-		return $options;
+	public static function active() {
+		return self::all(
+			array(
+				'archived' => 0,
+				'deleted'  => 0,
+				'spam'     => 0,
+			)
+		);
 	}
 
 	/**
+	 * Runs one SELECT per site, CHUNK_SIZE sites per UNION query, avoiding a
+	 * switch_to_blog() per site. If a chunk's query fails, e.g. a site's
+	 * tables are missing or live on another database server (HyperDB,
+	 * LudicrousDB), its sites are queried one at a time and any that still
+	 * fail are skipped.
+	 *
 	 * @param WP_Site[] $sites
-	 * @param string[]  $names
-	 * @return array<int, array<string, mixed>>
+	 * @param callable  $select Given a WP_Site, returns a prepared SELECT for
+	 *                          that site's tables. Every site's SELECT must
+	 *                          return the same columns.
+	 * @return object[] Rows from every site.
 	 */
-	private static function read_options( $sites, $names ) {
+	public static function query( $sites, $select ) {
 		global $wpdb;
 
-		$in      = implode( ', ', array_fill( 0, count( $names ), '%s' ) );
-		$selects = array();
-
-		foreach ( $sites as $site ) {
-			$table     = $wpdb->get_blog_prefix( $site->blog_id ) . 'options';
-			$selects[] = $wpdb->prepare(
-				"SELECT %d AS blog_id, option_name, option_value FROM `{$table}` WHERE option_name IN ({$in})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				array_merge( array( $site->blog_id ), $names )
-			);
-		}
-
+		$rows     = array();
 		$suppress = $wpdb->suppress_errors();
-		$rows     = $wpdb->get_results( implode( ' UNION ALL ', $selects ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$failed   = '' !== $wpdb->last_error;
-		$wpdb->suppress_errors( $suppress );
 
-		$options = array();
+		foreach ( array_chunk( $sites, self::CHUNK_SIZE ) as $chunk ) {
+			$selects = array_map( $select, $chunk );
 
-		if ( ! $failed ) {
-			foreach ( $rows as $row ) {
-				$options[ (int) $row->blog_id ][ $row->option_name ] = $row->option_value;
-			}
-			return $options;
-		}
+			// Parentheses let each SELECT have its own LIMIT.
+			$result = $wpdb->get_results( '(' . implode( ') UNION ALL (', $selects ) . ')' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
-		foreach ( $sites as $site ) {
-			$id = (int) $site->blog_id;
-			foreach ( $names as $name ) {
-				// Leave missing options out, as the query does.
-				$value = get_blog_option( $id, $name );
-				if ( false !== $value ) {
-					$options[ $id ][ $name ] = $value;
+			if ( '' !== $wpdb->last_error ) {
+				$result = array();
+				foreach ( $selects as $sql ) {
+					$site_rows = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					if ( '' === $wpdb->last_error ) {
+						$result = array_merge( $result, $site_rows );
+					}
 				}
 			}
+
+			$rows = array_merge( $rows, $result );
+		}
+
+		$wpdb->suppress_errors( $suppress );
+
+		return $rows;
+	}
+
+	/**
+	 * Reads the given options for many sites. Values are raw, so pass
+	 * serialized ones through maybe_unserialize(). Missing options are left
+	 * out.
+	 *
+	 * @param WP_Site[] $sites
+	 * @param string[]  $names Option names.
+	 * @return array<int, array<string, string>> Site ID => option name => raw value.
+	 */
+	public static function get_options( $sites, $names ) {
+		global $wpdb;
+
+		$in   = implode( ', ', array_fill( 0, count( $names ), '%s' ) );
+		$rows = self::query(
+			$sites,
+			function ( $site ) use ( $wpdb, $names, $in ) {
+				$table = $wpdb->get_blog_prefix( $site->blog_id ) . 'options';
+				return $wpdb->prepare(
+					"SELECT %d AS blog_id, option_name, option_value FROM `{$table}` WHERE option_name IN ({$in})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					array_merge( array( $site->blog_id ), $names )
+				);
+			}
+		);
+
+		$options = array();
+		foreach ( $rows as $row ) {
+			$options[ (int) $row->blog_id ][ $row->option_name ] = $row->option_value;
 		}
 
 		return $options;

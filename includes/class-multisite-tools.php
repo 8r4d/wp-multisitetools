@@ -18,13 +18,14 @@ final class Multisite_Tools {
 	 * includes/modules/class-mst-<slug>.php.
 	 */
 	const MODULES = array(
-		'plugin-usage'   => 'MST_Plugin_Usage',
-		'theme-usage'    => 'MST_Theme_Usage',
-		'queuebar'       => 'MST_Queuebar',
-		'default-author' => 'MST_Default_Author',
-		'copy-post'      => 'MST_Copy_Post',
-		'social-graph'   => 'MST_Social_Graph',
-		'hide-usernames' => 'MST_Hide_Usernames',
+		'plugin-usage'    => 'MST_Plugin_Usage',
+		'theme-usage'     => 'MST_Theme_Usage',
+		'queuebar'        => 'MST_Queuebar',
+		'default-author'  => 'MST_Default_Author',
+		'copy-post'       => 'MST_Copy_Post',
+		'missed-schedule' => 'MST_Missed_Schedule',
+		'social-graph'    => 'MST_Social_Graph',
+		'hide-usernames'  => 'MST_Hide_Usernames',
 	);
 
 	/**

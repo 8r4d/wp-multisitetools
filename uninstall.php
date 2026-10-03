@@ -4,6 +4,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 delete_site_transient( 'mst_plugin_usage' );
 delete_site_transient( 'mst_queuebar_counts' );
 delete_site_transient( 'mst_theme_usage' );
+delete_site_transient( 'mst_missed_schedule_scan' );
 delete_site_option( 'mst_modules' );
 
 // Per-site settings: Default author and Social graph's default image.

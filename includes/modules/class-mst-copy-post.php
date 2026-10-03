@@ -315,15 +315,7 @@ class MST_Copy_Post {
 		$sites   = array();
 
 		if ( is_super_admin() ) {
-			$all     = get_sites(
-				array(
-					'network_id' => get_current_network_id(),
-					'number'     => 0,
-					'archived'   => 0,
-					'deleted'    => 0,
-					'spam'       => 0,
-				)
-			);
+			$all     = MST_Sites::active();
 			$options = MST_Sites::get_options( $all, array( 'blogname' ) );
 
 			foreach ( $all as $site ) {
