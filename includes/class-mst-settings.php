@@ -130,6 +130,10 @@ class MST_Settings {
 				'label'       => __( 'Sharing & SEO', 'multisite-tools' ),
 				'description' => __( 'How each site\'s pages appear when shared or found.', 'multisite-tools' ),
 			),
+			'security'   => array(
+				'label'       => __( 'Security & privacy', 'multisite-tools' ),
+				'description' => __( 'Protections that apply to every site.', 'multisite-tools' ),
+			),
 			'other'      => array(
 				'label'       => __( 'Other', 'multisite-tools' ),
 				'description' => '',

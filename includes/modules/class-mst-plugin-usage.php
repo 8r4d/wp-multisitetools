@@ -12,11 +12,6 @@ class MST_Plugin_Usage {
 	const CACHE_KEY = 'mst_plugin_usage';
 	const CACHE_TTL = 12 * HOUR_IN_SECONDS;
 
-	/**
-	 * Sites per UNION query when reading options straight from the database.
-	 */
-	const CHUNK_SIZE = 100;
-
 	public static function label() {
 		return __( 'Plugin usage', 'multisite-tools' );
 	}
@@ -153,99 +148,25 @@ class MST_Plugin_Usage {
 			'sites'   => array(),
 		);
 
-		$sites = get_sites(
-			array(
-				'network_id' => get_current_network_id(),
-				'number'     => 0,
-			)
-		);
+		$sites   = MST_Sites::all();
+		$options = MST_Sites::get_options( $sites, array( 'active_plugins', 'blogname' ) );
 
-		foreach ( array_chunk( $sites, self::CHUNK_SIZE ) as $chunk ) {
-			$options = $this->read_options( $chunk );
+		foreach ( $sites as $site ) {
+			$id      = (int) $site->blog_id;
+			$plugins = maybe_unserialize( $options[ $id ]['active_plugins'] ?? array() );
 
-			foreach ( $chunk as $site ) {
-				$id      = (int) $site->blog_id;
-				$plugins = maybe_unserialize( $options[ $id ]['active_plugins'] ?? '' );
+			$usage['sites'][ $id ] = array(
+				'name'      => (string) ( $options[ $id ]['blogname'] ?? '' ),
+				'url'       => MST_Sites::url( $site ),
+				'admin_url' => MST_Sites::admin_url( $site, 'plugins.php' ),
+				'status'    => MST_Sites::status( $site ),
+			);
 
-				$usage['sites'][ $id ] = array(
-					'name'      => (string) ( $options[ $id ]['blogname'] ?? '' ),
-					'url'       => untrailingslashit( $site->domain . $site->path ),
-					'admin_url' => set_url_scheme( 'http://' . $site->domain . $site->path . 'wp-admin/plugins.php', 'admin' ),
-					'status'    => $this->site_status( $site ),
-				);
-
-				foreach ( (array) $plugins as $plugin_file ) {
-					$usage['plugins'][ $plugin_file ][] = $id;
-				}
+			foreach ( (array) $plugins as $plugin_file ) {
+				$usage['plugins'][ $plugin_file ][] = $id;
 			}
 		}
 
 		return $usage;
-	}
-
-	/**
-	 * Reads active_plugins and blogname for a batch of sites in a single query,
-	 * avoiding a switch_to_blog() per site. Falls back to get_blog_option() if
-	 * the query fails, e.g. a site's tables are missing or live on another
-	 * database server (HyperDB, LudicrousDB).
-	 *
-	 * @param WP_Site[] $sites
-	 * @return array<int, array<string, string>> Site ID => option name => raw value.
-	 */
-	private function read_options( $sites ) {
-		global $wpdb;
-
-		$selects = array();
-		foreach ( $sites as $site ) {
-			$table     = $wpdb->get_blog_prefix( $site->blog_id ) . 'options';
-			$selects[] = $wpdb->prepare(
-				"SELECT %d AS blog_id, option_name, option_value FROM `{$table}` WHERE option_name IN ('active_plugins', 'blogname')", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$site->blog_id
-			);
-		}
-
-		$suppress = $wpdb->suppress_errors();
-		$rows     = $wpdb->get_results( implode( ' UNION ALL ', $selects ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$failed   = '' !== $wpdb->last_error;
-		$wpdb->suppress_errors( $suppress );
-
-		$options = array();
-
-		if ( ! $failed ) {
-			foreach ( $rows as $row ) {
-				$options[ (int) $row->blog_id ][ $row->option_name ] = $row->option_value;
-			}
-			return $options;
-		}
-
-		foreach ( $sites as $site ) {
-			$id             = (int) $site->blog_id;
-			$options[ $id ] = array(
-				'active_plugins' => get_blog_option( $id, 'active_plugins', array() ),
-				'blogname'       => get_blog_option( $id, 'blogname', '' ),
-			);
-		}
-
-		return $options;
-	}
-
-	/**
-	 * @param WP_Site $site
-	 * @return string Comma-separated status labels, or '' for a normal public site.
-	 */
-	private function site_status( $site ) {
-		$labels = array();
-
-		if ( (int) $site->archived ) {
-			$labels[] = __( 'archived', 'multisite-tools' );
-		}
-		if ( (int) $site->spam ) {
-			$labels[] = __( 'spam', 'multisite-tools' );
-		}
-		if ( (int) $site->deleted ) {
-			$labels[] = __( 'deactivated', 'multisite-tools' );
-		}
-
-		return implode( ', ', $labels );
 	}
 }

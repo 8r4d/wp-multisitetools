@@ -19,9 +19,12 @@ final class Multisite_Tools {
 	 */
 	const MODULES = array(
 		'plugin-usage'   => 'MST_Plugin_Usage',
+		'theme-usage'    => 'MST_Theme_Usage',
 		'queuebar'       => 'MST_Queuebar',
 		'default-author' => 'MST_Default_Author',
+		'copy-post'      => 'MST_Copy_Post',
 		'social-graph'   => 'MST_Social_Graph',
+		'hide-usernames' => 'MST_Hide_Usernames',
 	);
 
 	/**
@@ -34,6 +37,7 @@ final class Multisite_Tools {
 
 	public static function boot() {
 		require_once MST_DIR . 'includes/class-mst-settings.php';
+		require_once MST_DIR . 'includes/class-mst-sites.php';
 
 		// Load every module class so the settings screen can describe them,
 		// but only register the enabled ones.
