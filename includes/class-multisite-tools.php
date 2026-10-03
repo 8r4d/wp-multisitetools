@@ -17,8 +17,9 @@ final class Multisite_Tools {
 	 * includes/modules/class-mst-<slug>.php.
 	 */
 	const MODULES = array(
-		'plugin-usage' => 'MST_Plugin_Usage',
-		'queuebar'     => 'MST_Queuebar',
+		'plugin-usage'   => 'MST_Plugin_Usage',
+		'queuebar'       => 'MST_Queuebar',
+		'default-author' => 'MST_Default_Author',
 	);
 
 	/**

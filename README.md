@@ -28,6 +28,14 @@ Adds a **N Scheduled** item to the admin toolbar on each site, for users who can
 
 It also adds a **Posts by Site** widget to Network Admin › Dashboard: a table of every active site (archived, spam and deactivated sites are left out) with its number of published, scheduled and draft posts, plus a totals row. Each count links to that site's filtered Posts screen. The counts are cached in a site transient that's cleared whenever a post changes status or is deleted on any site, a site's name changes, or a site is added, removed or updated, and it expires after an hour as a fallback.
 
+### Default author
+
+Lets each site choose an author who is automatically assigned to newly created posts, so an admin can write while posts are attributed to a lower-privileged account (keeping the admin username off the front end). Set it per site under **Settings › Default Post Author**; the list shows that site's users who can edit posts.
+
+Only new posts of type `post` are affected. If the post is being created with the current user (or no one) as author, the default author is used instead; an explicitly chosen other author is respected. Nothing happens if the chosen user has since been removed from the site.
+
+It uses the same `dpa_default_author` option as the standalone Default Post Author plugin, so existing settings carry over. Deactivate the standalone plugin once this is enabled, or each site will get two settings pages.
+
 ## Adding a module
 
 1. Create `includes/modules/class-mst-<slug>.php` with a class that has a `register()` method and static `label()` and `description()` methods. Optionally add an `enable()` method to reset any state when the module is switched back on.
