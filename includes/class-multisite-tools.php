@@ -23,6 +23,7 @@ final class Multisite_Tools {
 		'queuebar'        => 'MST_Queuebar',
 		'default-author'  => 'MST_Default_Author',
 		'copy-post'       => 'MST_Copy_Post',
+		'calendar'        => 'MST_Calendar',
 		'missed-schedule' => 'MST_Missed_Schedule',
 		'social-graph'    => 'MST_Social_Graph',
 		'hide-usernames'  => 'MST_Hide_Usernames',

@@ -40,6 +40,15 @@ Only new posts of type `post` are affected. If the post is being created with th
 
 It uses the same `dpa_default_author` option as the standalone Default Post Author plugin, so existing settings carry over. Deactivate the standalone plugin once this is enabled, or each site will get two settings pages.
 
+### Calendar
+
+Adds **Dashboard › Calendar** in Network Admin and on every site, covering every site you can edit posts on (all active sites for super admins):
+
+- **Month**: a calendar grid of published and scheduled posts, colour-coded by site, with a site filter and a legend. Scheduled posts have a dashed outline; missed ones a red edge. Click a post for a popup with its site, status, date and author, plus **Edit** and **View**/**Preview** links.
+- **Agenda**: everything scheduled from now on, grouped by day ("Today", "Tomorrow", then dates), with any missed scheduled posts flagged at the top.
+
+Posts appear at their own site's local date and time, since sites can be in different time zones. Only the `post` post type is shown (see `MST_Calendar::POST_TYPES`), drafts aren't included, and each site contributes at most 500 posts per view. Posts are read with one indexed query per 100 sites, so the page stays quick on large networks.
+
 ### Copy to site
 
 Adds a **Copy to site…** link to each post and page in the Posts and Pages lists. It opens a screen to choose the target site (any other active site you belong to, or any site for super admins), then creates a **draft** copy there with the same title, content, excerpt, categories and tags (created on the target if missing) and featured image (copied into the target's media library). You need to be able to create that kind of content on the target site.
