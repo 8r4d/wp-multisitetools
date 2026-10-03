@@ -1,7 +1,7 @@
 <?php
 /**
- * Network Admin › Settings › Multisite Multitools: switch modules on and off,
- * and choose each site's colour.
+ * Network Admin › Settings › Multisite Multitools: one tab per module
+ * category to switch modules on and off, plus a tab for each site's colour.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -64,21 +64,23 @@ class MST_Settings {
 	}
 
 	/**
-	 * Tab slug => label.
+	 * Tab slug => label: each non-empty module category, then Site colours.
 	 *
 	 * @return array<string, string>
 	 */
 	private function tabs() {
-		return array(
-			'modules' => __( 'Modules', 'multisite-tools' ),
-			'colors'  => __( 'Site colours', 'multisite-tools' ),
-		);
+		$tabs = wp_list_pluck( $this->modules_by_category(), 'label' );
+
+		$tabs['colors'] = __( 'Site colours', 'multisite-tools' );
+
+		return $tabs;
 	}
 
 	public function render_page() {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only view parameters.
+		$tabs    = $this->tabs();
 		$tab     = sanitize_key( $_GET['tab'] ?? '' );
-		$tab     = isset( $this->tabs()[ $tab ] ) ? $tab : 'modules';
+		$tab     = isset( $tabs[ $tab ] ) ? $tab : array_key_first( $tabs );
 		$updated = isset( $_GET['updated'] );
 		// phpcs:enable
 		?>
@@ -90,7 +92,7 @@ class MST_Settings {
 			<?php endif; ?>
 
 			<nav class="nav-tab-wrapper wp-clearfix">
-				<?php foreach ( $this->tabs() as $slug => $label ) : ?>
+				<?php foreach ( $tabs as $slug => $label ) : ?>
 					<a href="<?php echo esc_url( $this->page_url( $slug ) ); ?>" class="nav-tab<?php echo $slug === $tab ? ' nav-tab-active' : ''; ?>"<?php echo $slug === $tab ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $label ); ?></a>
 				<?php endforeach; ?>
 			</nav>
@@ -99,39 +101,41 @@ class MST_Settings {
 			if ( 'colors' === $tab ) {
 				$this->render_colors_tab();
 			} else {
-				$this->render_modules_tab();
+				$this->render_modules_tab( $tab );
 			}
 			?>
 		</div>
 		<?php
 	}
 
-	private function render_modules_tab() {
+	/**
+	 * @param string $key Category key.
+	 */
+	private function render_modules_tab( $key ) {
+		$category = $this->modules_by_category()[ $key ];
 		?>
 		<form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=' . self::ACTION ) ); ?>">
 			<?php wp_nonce_field( self::ACTION ); ?>
+			<input type="hidden" name="category" value="<?php echo esc_attr( $key ); ?>" />
 
-			<p><?php esc_html_e( 'Choose which tools are active across the network.', 'multisite-tools' ); ?></p>
-
-			<?php foreach ( $this->modules_by_category() as $category ) : ?>
-				<h2><?php echo esc_html( $category['label'] ); ?></h2>
+			<?php if ( '' !== $category['description'] ) : ?>
 				<p><?php echo esc_html( $category['description'] ); ?></p>
+			<?php endif; ?>
 
-				<table class="form-table" role="presentation">
-					<?php foreach ( $category['modules'] as $slug => $class ) : ?>
-						<tr>
-							<th scope="row"><?php echo esc_html( $class::label() ); ?></th>
-							<td>
-								<label>
-									<input type="checkbox" name="mst_modules[<?php echo esc_attr( $slug ); ?>]" value="1" <?php checked( Multisite_Tools::is_enabled( $slug ) ); ?> />
-									<?php esc_html_e( 'Enabled', 'multisite-tools' ); ?>
-								</label>
-								<p class="description"><?php echo esc_html( $class::description() ); ?></p>
-							</td>
-						</tr>
-					<?php endforeach; ?>
-				</table>
-			<?php endforeach; ?>
+			<table class="form-table" role="presentation">
+				<?php foreach ( $category['modules'] as $slug => $class ) : ?>
+					<tr>
+						<th scope="row"><?php echo esc_html( $class::label() ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="mst_modules[<?php echo esc_attr( $slug ); ?>]" value="1" <?php checked( Multisite_Tools::is_enabled( $slug ) ); ?> />
+								<?php esc_html_e( 'Enabled', 'multisite-tools' ); ?>
+							</label>
+							<p class="description"><?php echo esc_html( $class::description() ); ?></p>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</table>
 
 			<?php submit_button(); ?>
 		</form>
@@ -210,11 +214,19 @@ class MST_Settings {
 			wp_die( esc_html__( 'Sorry, you are not allowed to manage these settings.', 'multisite-tools' ), 403 );
 		}
 
-		$submitted = (array) ( $_POST['mst_modules'] ?? array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$enabled   = array();
+		$categories = $this->modules_by_category();
+		$key        = sanitize_key( $_POST['category'] ?? '' );
 
-		// Store every known module explicitly; unchecked boxes aren't submitted.
-		foreach ( Multisite_Tools::MODULES as $slug => $class ) {
+		if ( ! isset( $categories[ $key ] ) ) {
+			wp_die( esc_html__( 'Unknown settings tab.', 'multisite-tools' ), 400 );
+		}
+
+		$submitted = (array) ( $_POST['mst_modules'] ?? array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$enabled   = (array) get_site_option( Multisite_Tools::OPTION, array() );
+
+		// Only this tab's modules: unchecked boxes aren't submitted, so a
+		// missing module here means off, but other tabs' modules weren't shown.
+		foreach ( $categories[ $key ]['modules'] as $slug => $class ) {
 			$enabled[ $slug ] = ! empty( $submitted[ $slug ] );
 
 			// A module that was off didn't see the hooks that keep its state
@@ -226,7 +238,7 @@ class MST_Settings {
 
 		update_site_option( Multisite_Tools::OPTION, $enabled );
 
-		wp_safe_redirect( add_query_arg( 'updated', 'true', $this->page_url() ) );
+		wp_safe_redirect( add_query_arg( 'updated', 'true', $this->page_url( $key ) ) );
 		exit;
 	}
 
@@ -289,6 +301,6 @@ class MST_Settings {
 	 */
 	private function page_url( $tab = '' ) {
 		$url = network_admin_url( 'settings.php?page=' . self::PAGE );
-		return $tab && 'modules' !== $tab ? add_query_arg( 'tab', $tab, $url ) : $url;
+		return $tab ? add_query_arg( 'tab', $tab, $url ) : $url;
 	}
 }
