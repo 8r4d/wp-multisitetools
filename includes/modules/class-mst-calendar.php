@@ -499,7 +499,7 @@ class MST_Calendar {
 	 * Active sites the current user can edit posts on, as site ID => details.
 	 * Super admins get every active site.
 	 *
-	 * @return array<int, array{site: WP_Site, name: string, admin_url: string, home_url: string, color: string}>
+	 * @return array<int, array> As MST_Sites::details().
 	 */
 	private function sites() {
 		if ( is_super_admin() ) {
@@ -528,23 +528,7 @@ class MST_Calendar {
 			) : array();
 		}
 
-		$options = MST_Sites::get_options( $sites, array( 'blogname', 'home' ) );
-		$result  = array();
-
-		foreach ( $sites as $site ) {
-			$id   = (int) $site->blog_id;
-			$name = (string) ( $options[ $id ]['blogname'] ?? '' );
-
-			$result[ $id ] = array(
-				'site'      => $site,
-				'name'      => '' !== $name ? $name : MST_Sites::url( $site ),
-				'admin_url' => MST_Sites::admin_url( $site ),
-				'home_url'  => trailingslashit( $options[ $id ]['home'] ?? 'http://' . $site->domain . $site->path ),
-				'color'     => MST_Sites::color( $id ),
-			);
-		}
-
-		return $result;
+		return MST_Sites::details( $sites );
 	}
 
 	/**

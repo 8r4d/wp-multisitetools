@@ -8,7 +8,7 @@ Copy this folder to `wp-content/plugins/multisite-tools/` and **Network Activate
 
 ## Settings
 
-**Network Admin › Settings › Multisite Multitools** (also linked from the plugin's row on Network Admin › Plugins) has a tab for each module category (**Network administration**, **Content & publishing**, **Sharing & SEO** and **Security & privacy**), each listing its modules with a checkbox to switch them on or off network-wide. Each tab saves only its own modules. Modules are on by default, including newly added ones, until they're switched off.
+**Network Admin › Settings › Multisite Multitools** (also linked from the plugin's row on Network Admin › Plugins) has a tab for each module category (**Network administration**, **Content & publishing**, **Sharing & SEO** and **Security & privacy**), each listing its modules with a checkbox to switch them on or off network-wide. Each tab saves only its own modules. Modules are on by default, including newly added ones, until they're switched off. The exception is the hardening switches on the Security & privacy tab (Disable XML-RPC, Disable file editor, Hide WordPress version), which start off because they can change how sites behave.
 
 The **Site colours** tab sets a colour for each active site, using the standard WordPress colour picker. The colour marks the site wherever the plugin lists sites: the Calendar, the Posts by Site widget, the Plugin and Theme usage columns, the Copy to site confirmation and, with the Toolbar site colours module, the admin toolbar. Sites without a custom colour get a default from a 10-colour palette based on their site ID, so a site has the same colour on every screen and for every user. **Default** in the picker clears a custom colour. Deleting a site removes its colour.
 
@@ -27,6 +27,21 @@ The plugin-to-site map is cached in a site transient. It's cleared whenever any 
 ### Theme usage
 
 Adds an **Active On** column to Network Admin › Themes, listing the sites using each theme. A theme that's the parent of a child theme also shows **Parent theme on N sites**, since it can't be removed while those sites depend on it. Cached and invalidated the same way as Plugin usage, keyed on each site's `stylesheet` and `template` options.
+
+### Site overview
+
+Adds **Network Admin › Sites › Overview**: a table of every active site with its last published post and next scheduled post (with "3 days ago" / "in 2 days"), counts of published, scheduled and draft posts and comments awaiting moderation (each linking to the filtered screen on that site), and its theme. Sites are flagged when they:
+
+- have **missed a scheduled post**,
+- are **hidden from search engines** (Settings › Reading › Search engine visibility),
+- have published nothing in **6 months**, or
+- have **comments to moderate**.
+
+A summary above the table counts each kind of problem, or says everything looks healthy. The figures are read fresh on each visit with two queries per 100 sites.
+
+### Network search
+
+Adds **Network Admin › Dashboard › Search** (also in the toolbar under My Sites › Network Admin): search post and page titles across every active site, optionally including content, filtered by type and status. Results show the site (with its colour), type, status and date, newest first, with the match highlighted and **Edit** and **View**/**Preview** links. Up to 50 results per site are shown.
 
 ### Toolbar site colours
 
@@ -91,7 +106,15 @@ Closes the common ways a logged-out visitor can find login names:
 
 Logged-in users are unaffected, so the editor's author picker keeps working. Author archive URLs (`/author/<slug>/`) still use each user's nicename, which defaults to their username. There's no screen for changing it, but WP-CLI can: `wp user update <id> --user_nicename=<new-slug>`.
 
+### Hardening switches
+
+Three small protections on the Security & privacy tab. They start **off**; switch on the ones you want.
+
+- **Disable XML-RPC**: `xmlrpc.php` returns 403, and the `X-Pingback` header and RSD link are removed. Bots use XML-RPC to guess passwords and send pingback spam. Don't switch this on if you use Jetpack or an app that publishes over XML-RPC.
+- **Disable file editor**: removes the theme and plugin file editors everywhere, the same as `DISALLOW_FILE_EDIT`, so a stolen admin login can't edit code.
+- **Hide WordPress version**: removes the generator tag from pages and feeds, and on the front end replaces `?ver=<WordPress version>` on core scripts and styles with a hash of it, so caches still refresh after updates.
+
 ## Adding a module
 
-1. Create `includes/modules/class-mst-<slug>.php` with a class that has a `register()` method and static `label()`, `description()` and `category()` methods. `category()` returns one of the keys in `MST_Settings::categories()` (add a new category there if none fits). Optionally add an `enable()` method to reset any state when the module is switched back on.
+1. Create `includes/modules/class-mst-<slug>.php` with a class that has a `register()` method and static `label()`, `description()` and `category()` methods. `category()` returns one of the keys in `MST_Settings::categories()` (add a new category there if none fits). Optionally add an `enable()` method to reset any state when the module is switched back on, and a static `default_enabled()` returning `false` for a module that should start off.
 2. Add `'<slug>' => '<Class_Name>'` to `Multisite_Tools::MODULES` in `includes/class-multisite-tools.php`.

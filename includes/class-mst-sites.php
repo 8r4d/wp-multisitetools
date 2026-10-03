@@ -134,6 +134,36 @@ final class MST_Sites {
 	}
 
 	/**
+	 * Names, links and colours for a list of sites, for modules that show them.
+	 *
+	 * @param WP_Site[] $sites
+	 * @param string[]  $extra Other options to read for each site, returned
+	 *                         raw under 'options'.
+	 * @return array<int, array{site: WP_Site, name: string, url: string, admin_url: string, home_url: string, color: string, options: array<string, string>}>
+	 */
+	public static function details( $sites, $extra = array() ) {
+		$options = self::get_options( $sites, array_merge( array( 'blogname', 'home' ), $extra ) );
+		$details = array();
+
+		foreach ( $sites as $site ) {
+			$id   = (int) $site->blog_id;
+			$name = (string) ( $options[ $id ]['blogname'] ?? '' );
+
+			$details[ $id ] = array(
+				'site'      => $site,
+				'name'      => '' !== $name ? $name : self::url( $site ),
+				'url'       => self::url( $site ),
+				'admin_url' => self::admin_url( $site ),
+				'home_url'  => trailingslashit( $options[ $id ]['home'] ?? 'http://' . $site->domain . $site->path ),
+				'color'     => self::color( $id ),
+				'options'   => $options[ $id ] ?? array(),
+			);
+		}
+
+		return $details;
+	}
+
+	/**
 	 * @param WP_Site $site
 	 * @return string Domain and path, without scheme or trailing slash.
 	 */

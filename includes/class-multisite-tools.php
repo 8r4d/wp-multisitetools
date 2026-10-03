@@ -18,20 +18,27 @@ final class Multisite_Tools {
 	 * includes/modules/class-mst-<slug>.php.
 	 */
 	const MODULES = array(
-		'plugin-usage'    => 'MST_Plugin_Usage',
-		'theme-usage'     => 'MST_Theme_Usage',
-		'toolbar-colors'  => 'MST_Toolbar_Colors',
-		'queuebar'        => 'MST_Queuebar',
-		'default-author'  => 'MST_Default_Author',
-		'copy-post'       => 'MST_Copy_Post',
-		'calendar'        => 'MST_Calendar',
-		'missed-schedule' => 'MST_Missed_Schedule',
-		'social-graph'    => 'MST_Social_Graph',
-		'hide-usernames'  => 'MST_Hide_Usernames',
+		'plugin-usage'        => 'MST_Plugin_Usage',
+		'theme-usage'         => 'MST_Theme_Usage',
+		'site-overview'       => 'MST_Site_Overview',
+		'network-search'      => 'MST_Network_Search',
+		'toolbar-colors'      => 'MST_Toolbar_Colors',
+		'queuebar'            => 'MST_Queuebar',
+		'default-author'      => 'MST_Default_Author',
+		'copy-post'           => 'MST_Copy_Post',
+		'calendar'            => 'MST_Calendar',
+		'missed-schedule'     => 'MST_Missed_Schedule',
+		'social-graph'        => 'MST_Social_Graph',
+		'hide-usernames'      => 'MST_Hide_Usernames',
+		'disable-xmlrpc'      => 'MST_Disable_Xmlrpc',
+		'disable-file-editor' => 'MST_Disable_File_Editor',
+		'hide-wp-version'     => 'MST_Hide_Wp_Version',
 	);
 
 	/**
-	 * Network option holding slug => bool. Modules missing from it are on.
+	 * Network option holding slug => bool. Modules missing from it use their
+	 * default: on, unless the class has a static default_enabled() returning
+	 * false.
 	 */
 	const OPTION = 'mst_modules';
 
@@ -69,7 +76,13 @@ final class Multisite_Tools {
 	public static function is_enabled( $slug ) {
 		$enabled = get_site_option( self::OPTION, array() );
 
-		return ! isset( $enabled[ $slug ] ) || (bool) $enabled[ $slug ];
+		if ( isset( $enabled[ $slug ] ) ) {
+			return (bool) $enabled[ $slug ];
+		}
+
+		$class = self::MODULES[ $slug ] ?? '';
+
+		return ! method_exists( $class, 'default_enabled' ) || $class::default_enabled();
 	}
 
 	/**
