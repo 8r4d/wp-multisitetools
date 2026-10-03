@@ -20,11 +20,6 @@ class MST_Queuebar {
 	const CACHE_TTL = HOUR_IN_SECONDS;
 
 	/**
-	 * Sites per UNION query when reading counts straight from the database.
-	 */
-	const CHUNK_SIZE = 100;
-
-	/**
 	 * Post statuses counted, in display order.
 	 */
 	const STATUSES = array( 'publish', 'future', 'draft' );
@@ -212,96 +207,40 @@ class MST_Queuebar {
 	}
 
 	private function build_counts() {
-		$result = array();
-
-		$sites = get_sites(
-			array(
-				'network_id' => get_current_network_id(),
-				'number'     => 0,
-				'deleted'    => 0,
-				'archived'   => 0,
-				'spam'       => 0,
-			)
-		);
-
-		foreach ( array_chunk( $sites, self::CHUNK_SIZE ) as $chunk ) {
-			$data = $this->read_counts( $chunk );
-
-			foreach ( $chunk as $site ) {
-				$id = (int) $site->blog_id;
-
-				$result[ $id ] = array(
-					'name'      => (string) ( $data[ $id ]['blogname'] ?? '' ),
-					'url'       => untrailingslashit( $site->domain . $site->path ),
-					'admin_url' => set_url_scheme( 'http://' . $site->domain . $site->path . 'wp-admin/', 'admin' ),
-					'counts'    => array(),
-				);
-
-				foreach ( self::STATUSES as $status ) {
-					$result[ $id ]['counts'][ $status ] = (int) ( $data[ $id ][ $status ] ?? 0 );
-				}
-			}
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Reads post counts by status and the blogname for a batch of sites in a
-	 * single query, avoiding a switch_to_blog() per site. Each site contributes
-	 * one row per status plus a 'blogname' row, all as (blog_id, k, v). Falls
-	 * back to switch_to_blog() if the query fails, e.g. a site's tables are
-	 * missing or live on another database server (HyperDB, LudicrousDB).
-	 *
-	 * @param WP_Site[] $sites
-	 * @return array<int, array<string, string>> Site ID => status or 'blogname' => value.
-	 */
-	private function read_counts( $sites ) {
 		global $wpdb;
 
+		$sites    = MST_Sites::active();
+		$options  = MST_Sites::get_options( $sites, array( 'blogname' ) );
 		$statuses = "'" . implode( "', '", self::STATUSES ) . "'";
-		$selects  = array();
 
-		foreach ( $sites as $site ) {
-			$prefix    = $wpdb->get_blog_prefix( $site->blog_id );
-			$selects[] = $wpdb->prepare(
-				"SELECT %d AS blog_id, post_status AS k, COUNT(*) AS v FROM `{$prefix}posts` WHERE post_type = 'post' AND post_status IN ({$statuses}) GROUP BY post_status", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$site->blog_id
-			);
-			$selects[] = $wpdb->prepare(
-				"SELECT %d AS blog_id, option_name AS k, option_value AS v FROM `{$prefix}options` WHERE option_name = 'blogname'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$site->blog_id
-			);
-		}
-
-		$suppress = $wpdb->suppress_errors();
-		$rows     = $wpdb->get_results( implode( ' UNION ALL ', $selects ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$failed   = '' !== $wpdb->last_error;
-		$wpdb->suppress_errors( $suppress );
-
-		$data = array();
-
-		if ( ! $failed ) {
-			foreach ( $rows as $row ) {
-				$data[ (int) $row->blog_id ][ $row->k ] = $row->v;
+		$rows = MST_Sites::query(
+			$sites,
+			function ( $site ) use ( $wpdb, $statuses ) {
+				$table = $wpdb->get_blog_prefix( $site->blog_id ) . 'posts';
+				return $wpdb->prepare(
+					"SELECT %d AS blog_id, post_status, COUNT(*) AS total FROM `{$table}` WHERE post_type = 'post' AND post_status IN ({$statuses}) GROUP BY post_status", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$site->blog_id
+				);
 			}
-			return $data;
-		}
+		);
+
+		$result = array();
 
 		foreach ( $sites as $site ) {
 			$id = (int) $site->blog_id;
 
-			switch_to_blog( $id );
-
-			$counts      = wp_count_posts( 'post' );
-			$data[ $id ] = array( 'blogname' => get_option( 'blogname', '' ) );
-			foreach ( self::STATUSES as $status ) {
-				$data[ $id ][ $status ] = $counts->$status ?? 0;
-			}
-
-			restore_current_blog();
+			$result[ $id ] = array(
+				'name'      => (string) ( $options[ $id ]['blogname'] ?? '' ),
+				'url'       => MST_Sites::url( $site ),
+				'admin_url' => MST_Sites::admin_url( $site ),
+				'counts'    => array_fill_keys( self::STATUSES, 0 ),
+			);
 		}
 
-		return $data;
+		foreach ( $rows as $row ) {
+			$result[ (int) $row->blog_id ]['counts'][ $row->post_status ] = (int) $row->total;
+		}
+
+		return $result;
 	}
 }
