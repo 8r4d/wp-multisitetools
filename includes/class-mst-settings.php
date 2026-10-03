@@ -55,23 +55,27 @@ class MST_Settings {
 			<form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=' . self::ACTION ) ); ?>">
 				<?php wp_nonce_field( self::ACTION ); ?>
 
-				<h2><?php esc_html_e( 'Modules', 'multisite-tools' ); ?></h2>
 				<p><?php esc_html_e( 'Choose which tools are active across the network.', 'multisite-tools' ); ?></p>
 
-				<table class="form-table" role="presentation">
-					<?php foreach ( Multisite_Tools::MODULES as $slug => $class ) : ?>
-						<tr>
-							<th scope="row"><?php echo esc_html( $class::label() ); ?></th>
-							<td>
-								<label>
-									<input type="checkbox" name="mst_modules[<?php echo esc_attr( $slug ); ?>]" value="1" <?php checked( Multisite_Tools::is_enabled( $slug ) ); ?> />
-									<?php esc_html_e( 'Enabled', 'multisite-tools' ); ?>
-								</label>
-								<p class="description"><?php echo esc_html( $class::description() ); ?></p>
-							</td>
-						</tr>
-					<?php endforeach; ?>
-				</table>
+				<?php foreach ( $this->modules_by_category() as $category ) : ?>
+					<h2><?php echo esc_html( $category['label'] ); ?></h2>
+					<p><?php echo esc_html( $category['description'] ); ?></p>
+
+					<table class="form-table" role="presentation">
+						<?php foreach ( $category['modules'] as $slug => $class ) : ?>
+							<tr>
+								<th scope="row"><?php echo esc_html( $class::label() ); ?></th>
+								<td>
+									<label>
+										<input type="checkbox" name="mst_modules[<?php echo esc_attr( $slug ); ?>]" value="1" <?php checked( Multisite_Tools::is_enabled( $slug ) ); ?> />
+										<?php esc_html_e( 'Enabled', 'multisite-tools' ); ?>
+									</label>
+									<p class="description"><?php echo esc_html( $class::description() ); ?></p>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</table>
+				<?php endforeach; ?>
 
 				<?php submit_button(); ?>
 			</form>
@@ -104,6 +108,55 @@ class MST_Settings {
 
 		wp_safe_redirect( add_query_arg( 'updated', 'true', $this->page_url() ) );
 		exit;
+	}
+
+	/**
+	 * Module categories, in display order. A module names one of these from
+	 * its static category() method; anything else lands under "Other".
+	 *
+	 * @return array<string, array{label: string, description: string}>
+	 */
+	public static function categories() {
+		return array(
+			'network'    => array(
+				'label'       => __( 'Network administration', 'multisite-tools' ),
+				'description' => __( 'Tools for super admins managing the network.', 'multisite-tools' ),
+			),
+			'publishing' => array(
+				'label'       => __( 'Content & publishing', 'multisite-tools' ),
+				'description' => __( 'Tools for writing and scheduling posts on each site.', 'multisite-tools' ),
+			),
+			'sharing'    => array(
+				'label'       => __( 'Sharing & SEO', 'multisite-tools' ),
+				'description' => __( 'How each site\'s pages appear when shared or found.', 'multisite-tools' ),
+			),
+			'other'      => array(
+				'label'       => __( 'Other', 'multisite-tools' ),
+				'description' => '',
+			),
+		);
+	}
+
+	/**
+	 * @return array<string, array{label: string, description: string, modules: array<string, string>}>
+	 *               Non-empty categories in display order, each with slug => class.
+	 */
+	private function modules_by_category() {
+		$categories = self::categories();
+
+		foreach ( Multisite_Tools::MODULES as $slug => $class ) {
+			$category = method_exists( $class, 'category' ) ? $class::category() : 'other';
+			$category = isset( $categories[ $category ] ) ? $category : 'other';
+
+			$categories[ $category ]['modules'][ $slug ] = $class;
+		}
+
+		return array_filter(
+			$categories,
+			function ( $category ) {
+				return ! empty( $category['modules'] );
+			}
+		);
 	}
 
 	private function page_url() {

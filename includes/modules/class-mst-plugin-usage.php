@@ -25,6 +25,10 @@ class MST_Plugin_Usage {
 		return __( 'Adds an "Active On" column to Network Admin › Plugins showing which sites each plugin is activated on.', 'multisite-tools' );
 	}
 
+	public static function category() {
+		return 'network';
+	}
+
 	/**
 	 * Called when the module is switched back on. The map may have gone stale
 	 * while the invalidation hooks below weren't registered.

@@ -3,9 +3,10 @@
  * Module loader.
  *
  * Each module is a self-contained class in includes/modules/ with a
- * register() method that hooks itself into WordPress, plus static label()
- * and description() methods for the settings screen. Modules can be switched
- * on and off network-wide from Network Admin › Settings › Multisite Multitools.
+ * register() method that hooks itself into WordPress, plus static label(),
+ * description() and category() methods for the settings screen. Modules can
+ * be switched on and off network-wide from Network Admin › Settings ›
+ * Multisite Multitools.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -20,6 +21,7 @@ final class Multisite_Tools {
 		'plugin-usage'   => 'MST_Plugin_Usage',
 		'queuebar'       => 'MST_Queuebar',
 		'default-author' => 'MST_Default_Author',
+		'social-graph'   => 'MST_Social_Graph',
 	);
 
 	/**

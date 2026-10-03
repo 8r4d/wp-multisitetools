@@ -37,6 +37,10 @@ class MST_Queuebar {
 		return __( 'Shows the number of scheduled posts on the current site in the admin toolbar, and a per-site count of published, scheduled and draft posts on the Network Admin dashboard.', 'multisite-tools' );
 	}
 
+	public static function category() {
+		return 'publishing';
+	}
+
 	/**
 	 * Called when the module is switched back on. The counts may have gone
 	 * stale while the invalidation hooks below weren't registered.

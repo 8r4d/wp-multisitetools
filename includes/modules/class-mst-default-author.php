@@ -26,6 +26,10 @@ class MST_Default_Author {
 		return __( 'Lets each site choose an author that is automatically assigned to new posts, under Settings › Default Post Author on that site.', 'multisite-tools' );
 	}
 
+	public static function category() {
+		return 'publishing';
+	}
+
 	public function register() {
 		add_filter( 'wp_insert_post_data', array( $this, 'set_author' ), PHP_INT_MAX, 2 );
 

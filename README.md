@@ -8,7 +8,7 @@ Copy this folder to `wp-content/plugins/multisite-tools/` and **Network Activate
 
 ## Settings
 
-**Network Admin › Settings › Multisite Multitools** (also linked from the plugin's row on Network Admin › Plugins) lists every module with a checkbox to switch it on or off network-wide. Modules are on by default, including newly added ones, until they're switched off.
+**Network Admin › Settings › Multisite Multitools** (also linked from the plugin's row on Network Admin › Plugins) lists every module, grouped into **Network administration**, **Content & publishing** and **Sharing & SEO**, with a checkbox to switch each on or off network-wide. Modules are on by default, including newly added ones, until they're switched off.
 
 ## Modules
 
@@ -36,7 +36,13 @@ Only new posts of type `post` are affected. If the post is being created with th
 
 It uses the same `dpa_default_author` option as the standalone Default Post Author plugin, so existing settings carry over. Deactivate the standalone plugin once this is enabled, or each site will get two settings pages.
 
+### Social graph
+
+Adds `og:image` and `twitter:image` meta tags (plus `twitter:card` set to `summary_large_image`) to single posts, pages and custom post types, so shared links on Threads, Facebook, X and others show a preview image. It uses the featured image, falling back to the site icon; if neither exists, no tags are output.
+
+It does nothing on sites running Yoast SEO, Rank Math, All in One SEO, SEOPress or The SEO Framework, which output these tags already. Use the `mst_social_graph_skip` filter to skip it in other cases.
+
 ## Adding a module
 
-1. Create `includes/modules/class-mst-<slug>.php` with a class that has a `register()` method and static `label()` and `description()` methods. Optionally add an `enable()` method to reset any state when the module is switched back on.
+1. Create `includes/modules/class-mst-<slug>.php` with a class that has a `register()` method and static `label()`, `description()` and `category()` methods. `category()` returns one of the keys in `MST_Settings::categories()` (add a new category there if none fits). Optionally add an `enable()` method to reset any state when the module is switched back on.
 2. Add `'<slug>' => '<Class_Name>'` to `Multisite_Tools::MODULES` in `includes/class-multisite-tools.php`.
