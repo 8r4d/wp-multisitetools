@@ -62,6 +62,14 @@ class MST_Blocks {
 	}
 
 	/**
+	 * @param string $color Hex colour, optionally with alpha (#rgba or #rrggbbaa).
+	 * @return string The colour, or '' if it isn't one.
+	 */
+	public static function sanitize_color( $color ) {
+		return preg_match( '/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i', (string) $color ) ? $color : '';
+	}
+
+	/**
 	 * Outputs a featured cover: the post's featured image as a background,
 	 * under an overlay, with the given text on top. Outputs nothing when
 	 * there's neither an image nor text.
@@ -83,6 +91,7 @@ class MST_Blocks {
 		$overlay    = sanitize_hex_color( $attributes['overlayColor'] ?? '' ) ?: '#000000';
 		$position   = in_array( $attributes['contentPosition'] ?? '', array( 'top', 'bottom' ), true ) ? $attributes['contentPosition'] : 'center';
 		$align      = in_array( $attributes['textAlign'] ?? '', array( 'left', 'center', 'right' ), true ) ? $attributes['textAlign'] : '';
+		$highlight  = self::sanitize_color( $attributes['highlightColor'] ?? '' );
 		$tag        = tag_escape( $tag );
 
 		$classes = array( 'mst-cover', 'is-position-' . $position );
@@ -124,15 +133,22 @@ class MST_Blocks {
 			}
 			?>
 			<span class="mst-cover__overlay" style="background-color:<?php echo esc_attr( $overlay ); ?>;opacity:<?php echo esc_attr( $dim / 100 ); ?>;" aria-hidden="true"></span>
-			<?php if ( '' !== $text ) : ?>
-				<<?php echo $tag; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> class="mst-cover__text">
-					<?php if ( ! empty( $attributes['isLink'] ) ) : ?>
-						<a class="mst-cover__link" href="<?php echo esc_url( get_permalink( $post ) ); ?>"><?php echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></a>
-					<?php else : ?>
-						<?php echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					<?php endif; ?>
-				</<?php echo $tag; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
-			<?php endif; ?>
+			<?php
+			if ( '' !== $text ) {
+				if ( ! empty( $attributes['isLink'] ) ) {
+					$text = '<a class="mst-cover__link" href="' . esc_url( get_permalink( $post ) ) . '">' . $text . '</a>';
+				}
+
+				// No whitespace inside the span, or it shows in the highlight.
+				printf(
+					'<%1$s class="mst-cover__text"><span class="mst-cover__highlight%2$s"%3$s>%4$s</span></%1$s>',
+					$tag, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag_escape() above.
+					$highlight ? ' has-highlight' : '',
+					$highlight ? ' style="background-color:' . esc_attr( $highlight ) . ';"' : '',
+					$text // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- safe HTML from the caller.
+				);
+			}
+			?>
 		</div>
 		<?php
 	}

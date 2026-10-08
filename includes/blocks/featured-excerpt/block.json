@@ -32,6 +32,9 @@
 		"textAlign": {
 			"type": "string"
 		},
+		"highlightColor": {
+			"type": "string"
+		},
 		"isLink": {
 			"type": "boolean",
 			"default": false

@@ -33,11 +33,36 @@
 	}
 
 	/**
+	 * The block's text element: tagName with class mst-cover__text, around a
+	 * span that carries the highlight, so it follows each line of text.
+	 *
+	 * @param {Object}        attributes Block attributes.
+	 * @param {string}        tagName    Text element, e.g. 'p' or 'h2'.
+	 * @param {Object|string} content    RichText props to edit the text in
+	 *                                   place, or the text to show read-only.
+	 * @return {Element} Text element.
+	 */
+	function text( attributes, tagName, content ) {
+		const span = {
+			className: 'mst-cover__highlight' + ( attributes.highlightColor ? ' has-highlight' : '' ),
+			style: attributes.highlightColor ? { backgroundColor: attributes.highlightColor } : undefined,
+		};
+
+		return el(
+			tagName,
+			{ className: 'mst-cover__text' },
+			'string' === typeof content
+				? el( 'span', span, content )
+				: el( blockEditor.RichText, Object.assign( { tagName: 'span' }, content, span ) )
+		);
+	}
+
+	/**
 	 * Renders the block in the editor. Call from the block's edit function.
 	 *
 	 * @param {Object}  props            Block edit props.
 	 * @param {Object}  options
-	 * @param {Element} options.text     The block's text, with class mst-cover__text.
+	 * @param {Element} options.text     The block's text, from text().
 	 * @param {Element} [options.toolbar]  Extra block toolbar controls.
 	 * @param {Element} [options.settings] Extra controls for the Settings panel.
 	 * @return {Element} Block editor element.
@@ -156,6 +181,25 @@
 						setAttributes( { dimRatio: undefined === value ? 50 : value } );
 					},
 				} )
+			),
+			el(
+				components.PanelBody,
+				{ title: __( 'Text highlight', 'multisite-tools' ), initialOpen: !! attributes.highlightColor },
+				el(
+					components.BaseControl,
+					{
+						label: __( 'Colour', 'multisite-tools' ),
+						help: __( 'A bar of colour behind each line of text, to make it easier to read over the image. Clear it for none.', 'multisite-tools' ),
+					},
+					el( components.ColorPalette, {
+						colors: selected.colors,
+						value: attributes.highlightColor,
+						enableAlpha: true,
+						onChange: function ( value ) {
+							setAttributes( { highlightColor: value } );
+						},
+					} )
+				)
 			)
 		);
 
@@ -185,6 +229,7 @@
 
 	window.mstFeaturedCover = {
 		edit: edit,
+		text: text,
 		isEditable: isEditable,
 		stripTags: stripTags,
 	};

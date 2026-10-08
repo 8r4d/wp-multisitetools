@@ -2,8 +2,7 @@
  * Featured Excerpt editor. The background, overlay and their controls come
  * from shared/featured-cover.js; the front end is rendered by render.php.
  */
-( function ( blocks, element, blockEditor, coreData, i18n, cover ) {
-	const el = element.createElement;
+( function ( blocks, coreData, i18n, cover ) {
 	const __ = i18n.__;
 
 	function Edit( props ) {
@@ -14,9 +13,7 @@
 
 		let text;
 		if ( cover.isEditable( context ) ) {
-			text = el( blockEditor.RichText, {
-				tagName: 'p',
-				className: 'mst-cover__text',
+			text = cover.text( props.attributes, 'p', {
 				value: rawExcerpt,
 				onChange: excerptProp[ 1 ],
 				allowedFormats: [],
@@ -26,9 +23,9 @@
 				'aria-label': __( 'Excerpt', 'multisite-tools' ),
 			} );
 		} else {
-			text = el(
+			text = cover.text(
+				props.attributes,
 				'p',
-				{ className: 'mst-cover__text' },
 				cover.stripTags( rawExcerpt ) || autoExcerpt || __( 'The post\'s excerpt.', 'multisite-tools' )
 			);
 		}
@@ -43,4 +40,4 @@
 			return null;
 		},
 	} );
-} )( wp.blocks, wp.element, wp.blockEditor, wp.coreData, wp.i18n, window.mstFeaturedCover );
+} )( wp.blocks, wp.coreData, wp.i18n, window.mstFeaturedCover );

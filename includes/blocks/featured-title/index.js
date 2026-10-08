@@ -16,9 +16,7 @@
 
 		let text;
 		if ( cover.isEditable( context ) ) {
-			text = el( blockEditor.RichText, {
-				tagName: tagName,
-				className: 'mst-cover__text',
+			text = cover.text( attributes, tagName, {
 				value: rawTitle,
 				onChange: titleProp[ 1 ],
 				allowedFormats: [],
@@ -27,9 +25,9 @@
 				'aria-label': __( 'Title', 'multisite-tools' ),
 			} );
 		} else {
-			text = el(
+			text = cover.text(
+				attributes,
 				tagName,
-				{ className: 'mst-cover__text' },
 				cover.stripTags( ( titleProp[ 2 ] && titleProp[ 2 ].rendered ) || rawTitle ) || __( 'The post\'s title.', 'multisite-tools' )
 			);
 		}
