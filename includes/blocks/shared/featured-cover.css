@@ -1,0 +1,112 @@
+/*
+ * Featured cover: the shared look of Featured Excerpt and Featured Title, a
+ * post's featured image as a background under an overlay with text on top.
+ * Front end and editor.
+ */
+
+.mst-cover {
+	position: relative;
+	isolation: isolate;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	box-sizing: border-box;
+	overflow: hidden;
+	padding: 2em;
+	background-color: #1e1e1e;
+	color: #fff;
+}
+
+.mst-cover.is-position-top {
+	justify-content: flex-start;
+}
+
+.mst-cover.is-position-bottom {
+	justify-content: flex-end;
+}
+
+.mst-cover__image,
+.mst-cover__overlay {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	pointer-events: none;
+}
+
+.mst-cover__image {
+	z-index: -2;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	margin: 0;
+	object-fit: cover;
+}
+
+.mst-cover__overlay {
+	z-index: -1;
+}
+
+.mst-cover .mst-cover__text {
+	margin: 0;
+	color: inherit;
+}
+
+/*
+ * Typography settings land on the block, so pass each one the block sets
+ * through to the text; otherwise a title keeps the theme's heading styles.
+ */
+.mst-cover[class*="-font-size"] .mst-cover__text,
+.mst-cover[style*="font-size"] .mst-cover__text {
+	font-size: inherit;
+}
+
+.mst-cover[class*="-font-family"] .mst-cover__text,
+.mst-cover[style*="font-family"] .mst-cover__text {
+	font-family: inherit;
+}
+
+.mst-cover[style*="font-weight"] .mst-cover__text {
+	font-weight: inherit;
+}
+
+.mst-cover[style*="font-style"] .mst-cover__text {
+	font-style: inherit;
+}
+
+.mst-cover[style*="line-height"] .mst-cover__text {
+	line-height: inherit;
+}
+
+.mst-cover[style*="letter-spacing"] .mst-cover__text {
+	letter-spacing: inherit;
+}
+
+.mst-cover[style*="text-transform"] .mst-cover__text {
+	text-transform: inherit;
+}
+
+.mst-cover__link {
+	color: inherit;
+	text-decoration: none;
+}
+
+/* Make the whole block clickable. */
+.mst-cover__link::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+}
+
+.mst-cover__link:focus-visible {
+	outline: none;
+}
+
+.mst-cover__link:focus-visible::after {
+	outline: 2px solid currentColor;
+	outline-offset: -4px;
+}

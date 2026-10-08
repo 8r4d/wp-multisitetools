@@ -29,6 +29,7 @@ final class Multisite_Tools {
 		'calendar'            => 'MST_Calendar',
 		'missed-schedule'     => 'MST_Missed_Schedule',
 		'social-graph'        => 'MST_Social_Graph',
+		'blocks'              => 'MST_Blocks',
 		'hide-usernames'      => 'MST_Hide_Usernames',
 		'disable-xmlrpc'      => 'MST_Disable_Xmlrpc',
 		'disable-file-editor' => 'MST_Disable_File_Editor',

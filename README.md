@@ -8,7 +8,7 @@ Copy this folder to `wp-content/plugins/multisite-tools/` and **Network Activate
 
 ## Settings
 
-**Network Admin › Settings › Multisite Multitools** (also linked from the plugin's row on Network Admin › Plugins) has a tab for each module category (**Network administration**, **Content & publishing**, **Sharing & SEO** and **Security & privacy**), each listing its modules with a checkbox to switch them on or off network-wide. Each tab saves only its own modules. Modules are on by default, including newly added ones, until they're switched off. The exception is the hardening switches on the Security & privacy tab (Disable XML-RPC, Disable file editor, Hide WordPress version), which start off because they can change how sites behave.
+**Network Admin › Settings › Multisite Multitools** (also linked from the plugin's row on Network Admin › Plugins) has a tab for each module category (**Network administration**, **Content & publishing**, **Sharing & SEO**, **Blocks** and **Security & privacy**), each listing its modules with a checkbox to switch them on or off network-wide. Each tab saves only its own modules. Modules are on by default, including newly added ones, until they're switched off. The exception is the hardening switches on the Security & privacy tab (Disable XML-RPC, Disable file editor, Hide WordPress version), which start off because they can change how sites behave.
 
 The **Site colours** tab sets a colour for each active site, using the standard WordPress colour picker. The colour marks the site wherever the plugin lists sites: the Calendar, the Posts by Site widget, the Plugin and Theme usage columns, the Copy to site confirmation and, with the Toolbar site colours module, the admin toolbar. Sites without a custom colour get a default from a 10-colour palette based on their site ID, so a site has the same colour on every screen and for every user. **Default** in the picker clears a custom colour. Deleting a site removes its colour.
 
@@ -93,6 +93,21 @@ It still needs *some* traffic somewhere on the network, and the host must allow 
 Adds `og:image` and `twitter:image` meta tags (plus `twitter:card` set to `summary_large_image`) to single posts, pages and custom post types, so shared links on Threads, Facebook, X and others show a preview image. It uses the featured image, falling back to the site's **default sharing image** (set per site under **Settings › Reading › Social sharing**), then the site icon; if none exists, no tags are output.
 
 It does nothing on sites running Yoast SEO, Rank Math, All in One SEO, SEOPress or The SEO Framework, which output these tags already. Use the `mst_social_graph_skip` filter to skip it in other cases.
+
+### Design blocks
+
+Adds blocks to the editor on every site, under the **Theme** category in the inserter. Both show a post's featured image as a full-bleed background, under a coloured overlay, with text on top:
+
+- **Featured Excerpt**: the post's excerpt. Made for the top of a post or a single-post template. With no excerpt set, WordPress generates one from the content, shown greyed out in the editor until you write your own.
+- **Featured Title**: the post's title as a heading (H2 by default). Made for blog index tiles: put it in the **Post Template** of a Query Loop, e.g. in the Home or Index template in the Site Editor. It links to the post by default.
+
+In the toolbar, set the text's vertical position and alignment (and, for Featured Title, the heading level; on WordPress before 6.4 that's in the sidebar instead). In the sidebar, set the minimum height, the image focal point, the overlay colour and opacity, and whether the whole block links to the post. They also support wide/full width, text colour, typography (font family, size, weight, style, line height, letter spacing and letter case) and padding. Font families come from the theme: block themes and themes with a `theme.json` font palette offer them; other classic themes show no font family option. A title keeps the theme's heading styles except for the typography settings you change on the block.
+
+Used on the post itself, the text can be typed straight into the block and is saved as the post's excerpt or title; in a Query Loop it's read-only. Without a featured image a block shows the overlay on a dark background, and with neither an image nor text it outputs nothing. Featured Excerpt also outputs nothing on a password-protected post.
+
+The blocks are rendered on the server, so they always show the post's current image and text. Switching the module off leaves the blocks in post content but they output nothing until it's switched back on. Blocks need WordPress 5.8 or later.
+
+To add a block, create `includes/blocks/<name>/` with a `block.json`, `index.js` (plain JS using the `wp.*` globals, since there's no build step), `index.asset.php` listing its script dependencies and `render.php`, then add `<name>` to `MST_Blocks::BLOCKS`. Code shared between blocks lives in `includes/blocks/shared/`: the featured cover's editor script (`window.mstFeaturedCover`), stylesheet and `MST_Blocks::render_cover()`.
 
 ### Hide usernames
 

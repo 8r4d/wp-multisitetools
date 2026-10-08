@@ -1,0 +1,71 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "multisite-tools/featured-title",
+	"title": "Featured Title",
+	"category": "theme",
+	"icon": "cover-image",
+	"description": "The post's featured image as a background, with its title on top. Use it in a Query Loop for blog index tiles.",
+	"keywords": [ "cover", "hero", "title", "featured image", "query loop" ],
+	"textdomain": "multisite-tools",
+	"usesContext": [ "postId", "postType", "queryId" ],
+	"attributes": {
+		"minHeight": {
+			"type": "number",
+			"default": 300
+		},
+		"dimRatio": {
+			"type": "number",
+			"default": 50
+		},
+		"overlayColor": {
+			"type": "string",
+			"default": "#000000"
+		},
+		"focalPoint": {
+			"type": "object"
+		},
+		"contentPosition": {
+			"type": "string",
+			"default": "center"
+		},
+		"textAlign": {
+			"type": "string"
+		},
+		"isLink": {
+			"type": "boolean",
+			"default": true
+		},
+		"level": {
+			"type": "number",
+			"default": 2
+		}
+	},
+	"supports": {
+		"align": [ "wide", "full" ],
+		"html": false,
+		"color": {
+			"text": true,
+			"background": false
+		},
+		"spacing": {
+			"padding": true,
+			"margin": [ "top", "bottom" ]
+		},
+		"typography": {
+			"fontSize": true,
+			"lineHeight": true,
+			"fontFamily": true,
+			"__experimentalFontWeight": true,
+			"__experimentalFontStyle": true,
+			"__experimentalLetterSpacing": true,
+			"__experimentalTextTransform": true,
+			"__experimentalDefaultControls": {
+				"fontSize": true,
+				"fontFamily": true
+			}
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "mst-featured-cover"
+}
