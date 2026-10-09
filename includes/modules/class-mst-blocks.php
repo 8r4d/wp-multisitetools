@@ -34,16 +34,18 @@ class MST_Blocks {
 
 	public function register_blocks() {
 		$shared = plugins_url( 'includes/blocks/shared/', MST_FILE );
+		$dir    = MST_DIR . 'includes/blocks/shared/';
 
-		// Before the blocks, whose block.json and index.asset.php name these handles.
+		// Before the blocks, whose block.json and index.asset.php name these
+		// handles. Versioned by file time so browsers pick up every edit.
 		wp_register_script(
 			self::COVER_HANDLE,
 			$shared . 'featured-cover.js',
 			array( 'wp-block-editor', 'wp-components', 'wp-core-data', 'wp-data', 'wp-element', 'wp-i18n' ),
-			MST_VERSION,
+			(string) filemtime( $dir . 'featured-cover.js' ),
 			true
 		);
-		wp_register_style( self::COVER_HANDLE, $shared . 'featured-cover.css', array(), MST_VERSION );
+		wp_register_style( self::COVER_HANDLE, $shared . 'featured-cover.css', array(), (string) filemtime( $dir . 'featured-cover.css' ) );
 
 		foreach ( self::BLOCKS as $name ) {
 			$dir = MST_DIR . 'includes/blocks/' . $name;

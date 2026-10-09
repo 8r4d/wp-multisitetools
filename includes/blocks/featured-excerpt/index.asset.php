@@ -8,5 +8,5 @@ defined( 'ABSPATH' ) || exit;
 
 return array(
 	'dependencies' => array( 'wp-blocks', 'wp-core-data', 'wp-i18n', 'mst-featured-cover' ),
-	'version'      => MST_VERSION,
+	'version'      => (string) filemtime( __DIR__ . '/index.js' ),
 );
