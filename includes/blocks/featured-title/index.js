@@ -16,7 +16,7 @@
 
 		let text;
 		if ( cover.isEditable( context ) ) {
-			text = cover.text( attributes, tagName, {
+			text = cover.text( props, tagName, {
 				value: rawTitle,
 				onChange: titleProp[ 1 ],
 				allowedFormats: [],
@@ -26,7 +26,7 @@
 			} );
 		} else {
 			text = cover.text(
-				attributes,
+				props,
 				tagName,
 				cover.stripTags( ( titleProp[ 2 ] && titleProp[ 2 ].rendered ) || rawTitle ) || __( 'The post\'s title.', 'multisite-tools' )
 			);

@@ -70,6 +70,18 @@ class MST_Blocks {
 	}
 
 	/**
+	 * A tilt in degrees, from -$max to $max, picked from the post ID so each
+	 * post keeps its angle. Matches tilt() in shared/featured-cover.js.
+	 *
+	 * @param int $post_id
+	 * @param int $max     Maximum tilt in degrees.
+	 * @return int Angle.
+	 */
+	public static function tilt( $post_id, $max ) {
+		return ( ( $post_id * 7919 ) % ( 2 * $max + 1 ) ) - $max;
+	}
+
+	/**
 	 * Outputs a featured cover: the post's featured image as a background,
 	 * under an overlay, with the given text on top. Outputs nothing when
 	 * there's neither an image nor text.
@@ -93,6 +105,7 @@ class MST_Blocks {
 		$align      = in_array( $attributes['textAlign'] ?? '', array( 'left', 'center', 'right' ), true ) ? $attributes['textAlign'] : '';
 		$highlight  = self::sanitize_color( $attributes['highlightColor'] ?? '' );
 		$tag        = tag_escape( $tag );
+		$angle      = empty( $attributes['tilt'] ) ? 0 : self::tilt( $post->ID, min( 45, max( 1, absint( $attributes['maxTilt'] ?? 15 ) ) ) );
 
 		$classes = array( 'mst-cover', 'is-position-' . $position );
 		if ( $align ) {
@@ -141,11 +154,12 @@ class MST_Blocks {
 
 				// No whitespace inside the span, or it shows in the highlight.
 				printf(
-					'<%1$s class="mst-cover__text"><span class="mst-cover__highlight%2$s"%3$s>%4$s</span></%1$s>',
+					'<%1$s class="mst-cover__text"%5$s><span class="mst-cover__highlight%2$s"%3$s>%4$s</span></%1$s>',
 					$tag, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag_escape() above.
 					$highlight ? ' has-highlight' : '',
 					$highlight ? ' style="background-color:' . esc_attr( $highlight ) . ';"' : '',
-					$text // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- safe HTML from the caller.
+					$text, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- safe HTML from the caller.
+					$angle ? ' style="transform:rotate(' . $angle . 'deg);"' : ''
 				);
 			}
 			?>

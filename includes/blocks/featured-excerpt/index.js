@@ -13,7 +13,7 @@
 
 		let text;
 		if ( cover.isEditable( context ) ) {
-			text = cover.text( props.attributes, 'p', {
+			text = cover.text( props, 'p', {
 				value: rawExcerpt,
 				onChange: excerptProp[ 1 ],
 				allowedFormats: [],
@@ -24,7 +24,7 @@
 			} );
 		} else {
 			text = cover.text(
-				props.attributes,
+				props,
 				'p',
 				cover.stripTags( rawExcerpt ) || autoExcerpt || __( 'The post\'s excerpt.', 'multisite-tools' )
 			);

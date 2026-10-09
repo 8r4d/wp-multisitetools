@@ -1,7 +1,7 @@
 /**
  * Featured cover editor: the parts Featured Excerpt and Featured Title share,
  * a post's featured image as a background under an overlay, with the
- * position, height, link, focal point and overlay controls. Each block passes
+ * position, height, link, tilt, focal point, overlay and highlight controls. Each block passes
  * in its own text. Plain JS on the wp.* globals, so there's no build step.
  */
 ( function ( element, blockEditor, components, data, coreData, i18n ) {
@@ -33,16 +33,32 @@
 	}
 
 	/**
-	 * The block's text element: tagName with class mst-cover__text, around a
-	 * span that carries the highlight, so it follows each line of text.
+	 * The text's tilt in degrees, from -max to max. Picked from the post ID,
+	 * so each post keeps its angle; matches MST_Blocks::tilt().
 	 *
-	 * @param {Object}        attributes Block attributes.
-	 * @param {string}        tagName    Text element, e.g. 'p' or 'h2'.
-	 * @param {Object|string} content    RichText props to edit the text in
-	 *                                   place, or the text to show read-only.
+	 * @param {number} postId
+	 * @param {number} max    Maximum tilt in degrees.
+	 * @return {number} Angle.
+	 */
+	function tilt( postId, max ) {
+		return ( ( postId * 7919 ) % ( 2 * max + 1 ) ) - max;
+	}
+
+	/**
+	 * The block's text element: tagName with class mst-cover__text, tilted if
+	 * the block says so, around a span that carries the highlight, so it
+	 * follows each line of text.
+	 *
+	 * @param {Object}        props   Block edit props.
+	 * @param {string}        tagName Text element, e.g. 'p' or 'h2'.
+	 * @param {Object|string} content RichText props to edit the text in
+	 *                                place, or the text to show read-only.
 	 * @return {Element} Text element.
 	 */
-	function text( attributes, tagName, content ) {
+	function text( props, tagName, content ) {
+		const attributes = props.attributes;
+		// Without a post, e.g. in a template preview, show a typical tilt.
+		const angle = attributes.tilt ? tilt( props.context.postId || 1, attributes.maxTilt ) : 0;
 		const span = {
 			className: 'mst-cover__highlight' + ( attributes.highlightColor ? ' has-highlight' : '' ),
 			style: attributes.highlightColor ? { backgroundColor: attributes.highlightColor } : undefined,
@@ -50,7 +66,10 @@
 
 		return el(
 			tagName,
-			{ className: 'mst-cover__text' },
+			{
+				className: 'mst-cover__text',
+				style: angle ? { transform: 'rotate(' + angle + 'deg)' } : undefined,
+			},
 			'string' === typeof content
 				? el( 'span', span, content )
 				: el( blockEditor.RichText, Object.assign( { tagName: 'span' }, content, span ) )
@@ -145,6 +164,23 @@
 					checked: attributes.isLink,
 					onChange: function ( value ) {
 						setAttributes( { isLink: value } );
+					},
+				} ),
+				el( components.ToggleControl, {
+					label: __( 'Tilt text', 'multisite-tools' ),
+					help: __( 'Rotates the text by a different angle for each post.', 'multisite-tools' ),
+					checked: attributes.tilt,
+					onChange: function ( value ) {
+						setAttributes( { tilt: value } );
+					},
+				} ),
+				attributes.tilt && el( components.RangeControl, {
+					label: __( 'Maximum tilt (degrees)', 'multisite-tools' ),
+					value: attributes.maxTilt,
+					min: 1,
+					max: 45,
+					onChange: function ( value ) {
+						setAttributes( { maxTilt: value || 15 } );
 					},
 				} ),
 				imageUrl && el( components.FocalPointPicker, {
