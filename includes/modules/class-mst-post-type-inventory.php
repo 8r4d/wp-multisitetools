@@ -104,7 +104,7 @@ class MST_Post_Type_Inventory {
 	public function render_page() {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only view parameters.
 		$site_id   = absint( $_GET['site'] ?? 0 );
-		$post_type = sanitize_key( wp_unslash( $_GET['post_type'] ?? '' ) );
+		$post_type = sanitize_key( wp_unslash( $_GET['type'] ?? '' ) );
 		$refreshed = absint( $_GET['refreshed'] ?? 0 );
 		// phpcs:enable
 
@@ -824,8 +824,11 @@ class MST_Post_Type_Inventory {
 	private function delete_url( $site_id, $post_type ) {
 		return add_query_arg(
 			array(
-				'site'      => $site_id,
-				'post_type' => $post_type,
+				'site' => $site_id,
+				// Not post_type: on a post type registered here, admin.php
+				// would look for the page under sites.php?post_type=… and
+				// fail with "Cannot load".
+				'type' => $post_type,
 			),
 			network_admin_url( 'sites.php?page=' . self::PAGE )
 		);
