@@ -21,6 +21,7 @@ final class Multisite_Tools {
 		'plugin-usage'        => 'MST_Plugin_Usage',
 		'theme-usage'         => 'MST_Theme_Usage',
 		'site-overview'       => 'MST_Site_Overview',
+		'post-type-inventory' => 'MST_Post_Type_Inventory',
 		'network-search'      => 'MST_Network_Search',
 		'toolbar-colors'      => 'MST_Toolbar_Colors',
 		'queuebar'            => 'MST_Queuebar',

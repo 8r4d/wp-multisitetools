@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Multisite Multitools
  * Description:       A toolkit of network admin utilities for WordPress multisite.
- * Version:           3.0.4
+ * Version:           3.1.0
  * Author:			  Brad Salomons
  * Requires at least: 5.1
  * Requires PHP:      7.4
@@ -17,7 +17,7 @@ if ( ! is_multisite() ) {
 	return;
 }
 
-define( 'MST_VERSION', '3.0.4' );
+define( 'MST_VERSION', '3.1.0' );
 define( 'MST_FILE', __FILE__ );
 define( 'MST_DIR', plugin_dir_path( __FILE__ ) );
 

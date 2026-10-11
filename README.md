@@ -39,6 +39,17 @@ Adds **Network Admin › Sites › Overview**: a table of every active site with
 
 A summary above the table counts each kind of problem, or says everything looks healthy. The figures are read fresh on each visit with two queries per 100 sites.
 
+### Post type inventory
+
+Adds **Network Admin › Sites › Post Types**, listing every custom post type on the network with the sites that register it and the sites that have content in it (with post counts). It also lists **orphaned content**: posts on a site whose post type isn't registered there, usually left behind by a removed or deactivated plugin or theme. Orphaned posts can't be seen or edited on their site, but they still take up space and turn up in exports and some queries. Each orphan is labelled:
+
+- **Still registered on N other sites**: the plugin is probably just deactivated on this site. Reactivating it brings the content back, so that may be the better fix.
+- **Not registered anywhere**: the plugin or theme is probably gone for good.
+
+Post types are registered in code on each request, so Network Admin can't see another site's directly. Instead, each site records its registered post types in a `mst_post_types` option whenever they change, keeping admin and front-end requests separate because some plugins register post types in only one of them. A site that hasn't been visited since the module was switched on has no record yet. It's never reported as having orphans and is listed in a warning instead. **Refresh all sites** pings every active site's `wp-cron.php`, which loads that site's plugins and theme so it reports in, in the background; reload the page a minute later. Switching the module off and on again discards the old records, since post types may have been added in the meantime.
+
+**Delete…** on an orphan opens a dry run showing how many posts, revisions, custom fields, comments, term assignments and attached media items are affected. Type the post type's name to confirm, and the posts are permanently deleted in batches of 50 with `wp_delete_post()`, along with their revisions, custom fields, comments and term assignments (term counts are updated). Attached media is kept and detached. The page re-checks that the type is still unregistered before every batch. There's no undo, so back up the site's database first. Only super admins (`manage_network`) can see the page or delete content. Archived, spam and deactivated sites aren't checked, since they can't report their post types.
+
 ### Network search
 
 Adds **Network Admin › Dashboard › Search** (also in the toolbar under My Sites › Network Admin): search post and page titles across every active site, optionally including content, filtered by type and status. Results show the site (with its colour), type, status and date, newest first, with the match highlighted and **Edit** and **View**/**Preview** links. Up to 50 results per site are shown.
