@@ -99,6 +99,21 @@ Publishes scheduled posts that WordPress missed. WP-Cron only runs on a site whe
 
 It still needs *some* traffic somewhere on the network, and the host must allow WordPress to make requests to its own sites (the same requirement as normal WP-Cron). Server cron is more reliable where available.
 
+### Network digest
+
+Adds a `[network_digest]` shortcode that shows recent posts from chosen sites as one feed, newest first, so one site can act as a digest of the others. Choose the source sites and how many posts to read from each (5 by default, up to 50) under **Network Admin › Settings › Network Digest**. Only published `post`s are shown, and archived, spam and deactivated sites are skipped.
+
+Each item shows the featured image, title, a 30-word excerpt, the source site, author, date and tags, all linking back to the source site in a new tab. The first few posts are shown, with a **Load more** button that fetches more without reloading the page. Shortcode options:
+
+- `per_page`: posts shown at first and per **Load more** click (default 3).
+- `limit`: most posts shown in total, or 0 for no cap (default 60). Posts per source site also caps this.
+
+For example: `[network_digest per_page="10" limit="30"]`.
+
+Posts are read live from the source sites, not copied. The merged feed is cached in a site transient that's cleared when a post is published, edited, unpublished or deleted on any site, a site's name changes, a site is updated or removed, or the settings are saved, and it expires after 15 minutes as a fallback. The styles are in `assets/network-digest.css`, and every class starts with `network-digest`, so themes can override them.
+
+It uses the same shortcode, settings and markup as the standalone Network Digest plugin, so existing pages and settings carry over. Deactivate the standalone plugin once this is enabled.
+
 ### Social graph
 
 Adds `og:image` and `twitter:image` meta tags (plus `twitter:card` set to `summary_large_image`) to single posts, pages and custom post types, so shared links on Threads, Facebook, X and others show a preview image. It uses the featured image, falling back to the site's **default sharing image** (set per site under **Settings › Reading › Social sharing**), then the site icon; if none exists, no tags are output.

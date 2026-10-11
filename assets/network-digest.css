@@ -1,0 +1,106 @@
+/**
+ * Network digest module: styles for the [network_digest] shortcode.
+ * Edit freely; nothing here is generated or overwritten by the plugin.
+ * Class names all use the "network-digest" prefix to avoid clashing with your theme.
+ */
+
+.network-digest {
+	display: grid;
+	gap: 1.5rem;
+}
+
+.network-digest-item {
+	display: flex;
+	gap: 1rem;
+	padding-bottom: 3rem;
+}
+
+.network-digest-thumb img {
+	width: 250px;
+	height: 200px;
+	object-fit: cover;
+	border-radius: 6px;
+	display: block;
+	padding-top: 0.4em;
+}
+
+.network-digest-title {
+	margin: 0 0 .4rem;
+	font-size: 2;
+	line-height: 2;
+	text-transform: uppercase;
+}
+
+.network-digest-title a {
+	text-decoration: none;
+}
+
+.network-digest-excerpt {
+	margin: 0 0 .5rem;
+	color: #444;
+}
+
+.network-digest-meta {
+	margin: 0 0 .5rem;
+	font-size: .85rem;
+	color: #777;
+}
+
+.network-digest-meta a {
+	color: inherit;
+}
+
+.network-digest-tags {
+	margin: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: .4rem;
+}
+
+.network-digest-tag {
+	font-size: .75rem;
+	background: #f1f1f1;
+	color: #555;
+	padding: .15rem .55rem;
+	border-radius: 999px;
+	text-decoration: none;
+}
+
+.network-digest-tag:hover {
+	background: #e4e4e4;
+}
+
+.network-digest-load-more-wrap {
+	text-align: center;
+	padding-top: .5rem;
+}
+
+.network-digest-load-more {
+	cursor: pointer;
+	padding: .6rem 1.4rem;
+	border-radius: 6px;
+	border: 1px solid #ccc;
+	background: #fff;
+	font-size: .9rem;
+}
+
+.network-digest-load-more:hover {
+	background: #f7f7f7;
+}
+
+.network-digest-loading {
+	font-size: .85rem;
+	color: #777;
+	margin-left: .5rem;
+}
+
+@media (max-width: 480px) {
+	.network-digest-item {
+		flex-direction: column;
+	}
+
+	.network-digest-thumb img {
+		width: 100%;
+		height: auto;
+	}
+}

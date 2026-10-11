@@ -5,9 +5,12 @@ delete_site_transient( 'mst_plugin_usage' );
 delete_site_transient( 'mst_queuebar_counts' );
 delete_site_transient( 'mst_theme_usage' );
 delete_site_transient( 'mst_missed_schedule_scan' );
+delete_site_transient( 'mst_network_digest' );
 delete_site_option( 'mst_modules' );
 delete_site_option( 'mst_site_colors' );
 delete_site_option( 'mst_post_types_since' );
+delete_site_option( 'network_digest_source_site_ids' );
+delete_site_option( 'network_digest_posts_per_source' );
 
 // Per-site settings: Default author, Social graph's default image and Post
 // type inventory's snapshot.
