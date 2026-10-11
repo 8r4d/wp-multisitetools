@@ -1,0 +1,99 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "multisite-tools/featured-link",
+	"title": "Featured Link",
+	"category": "theme",
+	"icon": "admin-links",
+	"description": "An image with linked text on top and a description below, to promote and explain a link within a post or page.",
+	"keywords": [ "cover", "promo", "link", "call to action", "image" ],
+	"textdomain": "multisite-tools",
+	"usesContext": [ "postId", "postType" ],
+	"attributes": {
+		"imageId": {
+			"type": "number"
+		},
+		"text": {
+			"type": "string",
+			"default": ""
+		},
+		"url": {
+			"type": "string"
+		},
+		"opensInNewTab": {
+			"type": "boolean",
+			"default": false
+		},
+		"minHeight": {
+			"type": "number",
+			"default": 300
+		},
+		"dimRatio": {
+			"type": "number",
+			"default": 50
+		},
+		"overlayColor": {
+			"type": "string",
+			"default": "#000000"
+		},
+		"focalPoint": {
+			"type": "object"
+		},
+		"contentPosition": {
+			"type": "string",
+			"default": "center"
+		},
+		"textAlign": {
+			"type": "string"
+		},
+		"highlightColor": {
+			"type": "string"
+		},
+		"tilt": {
+			"type": "boolean",
+			"default": true
+		},
+		"angle": {
+			"type": "number",
+			"default": -5
+		},
+		"isLink": {
+			"type": "boolean",
+			"default": true
+		},
+		"level": {
+			"type": "number",
+			"default": 2
+		}
+	},
+	"supports": {
+		"align": [ "wide", "full" ],
+		"html": false,
+		"color": {
+			"text": true,
+			"background": false,
+			"__experimentalSkipSerialization": true
+		},
+		"spacing": {
+			"padding": true,
+			"margin": [ "top", "bottom" ],
+			"__experimentalSkipSerialization": [ "padding" ]
+		},
+		"typography": {
+			"fontSize": true,
+			"lineHeight": true,
+			"__experimentalFontFamily": true,
+			"__experimentalFontWeight": true,
+			"__experimentalFontStyle": true,
+			"__experimentalLetterSpacing": true,
+			"__experimentalTextTransform": true,
+			"__experimentalSkipSerialization": true,
+			"__experimentalDefaultControls": {
+				"fontSize": true,
+				"fontFamily": true
+			}
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "mst-featured-cover"
+}

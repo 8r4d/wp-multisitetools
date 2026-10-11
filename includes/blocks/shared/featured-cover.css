@@ -1,7 +1,7 @@
 /*
- * Featured cover: the shared look of Featured Excerpt and Featured Title, a
- * post's featured image as a background under an overlay with text on top.
- * Front end and editor.
+ * Featured cover: the shared look of the featured blocks, an image as a
+ * background under an overlay with text on top, and Featured Link's
+ * description below it. Front end and editor.
  */
 
 .mst-cover {
@@ -116,4 +116,30 @@
 .mst-cover__link:focus-visible::after {
 	outline: 2px solid currentColor;
 	outline-offset: -4px;
+}
+
+/* Featured Link with "whole image" off: only the text is a link. */
+.mst-cover__link.is-text-link {
+	text-decoration: underline;
+}
+
+.mst-cover__link.is-text-link::after {
+	content: none;
+}
+
+.mst-cover__link.is-text-link:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.mst-promo__description {
+	margin-top: 1em;
+}
+
+.mst-promo__description > :first-child {
+	margin-top: 0;
+}
+
+.mst-promo__description > :last-child {
+	margin-bottom: 0;
 }

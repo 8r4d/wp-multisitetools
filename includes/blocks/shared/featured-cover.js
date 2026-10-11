@@ -1,8 +1,9 @@
 /**
- * Featured cover editor: the parts Featured Excerpt and Featured Title share,
- * a post's featured image as a background under an overlay, with the
- * position, height, link, tilt, focal point, overlay and highlight controls. Each block passes
- * in its own text. Plain JS on the wp.* globals, so there's no build step.
+ * Featured cover editor: the parts the featured blocks share, an image (by
+ * default the post's featured image) as a background under an overlay, with
+ * the position, height, link, tilt, focal point, overlay and highlight
+ * controls. Each block passes in its own text. Plain JS on the wp.* globals,
+ * so there's no build step.
  */
 ( function ( element, blockEditor, components, data, coreData, i18n ) {
 	const el = element.createElement;
@@ -47,7 +48,8 @@
 	/**
 	 * The block's text element: tagName with class mst-cover__text, tilted if
 	 * the block says so, around a span that carries the highlight, so it
-	 * follows each line of text.
+	 * follows each line of text. A block with an angle attribute tilts by
+	 * that; otherwise each post gets its own angle up to maxTilt.
 	 *
 	 * @param {Object}        props   Block edit props.
 	 * @param {string}        tagName Text element, e.g. 'p' or 'h2'.
@@ -57,8 +59,11 @@
 	 */
 	function text( props, tagName, content ) {
 		const attributes = props.attributes;
-		// Without a post, e.g. in a template preview, show a typical tilt.
-		const angle = attributes.tilt ? tilt( props.context.postId || 1, attributes.maxTilt ) : 0;
+		let angle = 0;
+		if ( attributes.tilt ) {
+			// Without a post, e.g. in a template preview, show a typical tilt.
+			angle = 'number' === typeof attributes.angle ? attributes.angle : tilt( props.context.postId || 1, attributes.maxTilt );
+		}
 		const span = {
 			className: 'mst-cover__highlight' + ( attributes.highlightColor ? ' has-highlight' : '' ),
 			style: attributes.highlightColor ? { backgroundColor: attributes.highlightColor } : undefined,
@@ -79,11 +84,22 @@
 	/**
 	 * Renders the block in the editor. Call from the block's edit function.
 	 *
-	 * @param {Object}  props            Block edit props.
+	 * @param {Object}  props               Block edit props.
 	 * @param {Object}  options
-	 * @param {Element} options.text     The block's text, from text().
-	 * @param {Element} [options.toolbar]  Extra block toolbar controls.
-	 * @param {Element} [options.settings] Extra controls for the Settings panel.
+	 * @param {Element} options.text        The block's text, from text().
+	 * @param {Element} [options.toolbar]   Extra block toolbar controls.
+	 * @param {Element} [options.settings]  Extra controls for the Settings panel.
+	 * @param {number}  [options.imageId]   Image to use instead of the post's
+	 *                                      featured image; 0 for none.
+	 * @param {Element} [options.link]      Replaces the "Link to post" toggle.
+	 * @param {string}  [options.tiltHelp]  Help for the "Tilt text" toggle.
+	 * @param {Element} [options.tilt]      Replaces the "Maximum tilt" control.
+	 * @param {Object}  [options.wrapper]   Wraps the cover in the block's
+	 *                                      wrapper instead of making it the
+	 *                                      wrapper: { className, cover: {
+	 *                                      className, style }, after }, where
+	 *                                      after is an element below the cover.
+	 * @param {Element} [options.inspector] Extra inspector panels.
 	 * @return {Element} Block editor element.
 	 */
 	function edit( props, options ) {
@@ -92,15 +108,17 @@
 		const context = props.context;
 
 		const featuredId = coreData.useEntityProp( 'postType', context.postType, 'featured_media', context.postId )[ 0 ];
+		const ownImage = undefined !== options.imageId;
+		const imageId = ownImage ? options.imageId : featuredId;
 
 		const selected = data.useSelect(
 			function ( select ) {
 				return {
-					media: featuredId ? select( 'core' ).getMedia( featuredId, { context: 'view' } ) : null,
+					media: imageId ? select( 'core' ).getMedia( imageId, { context: 'view' } ) : null,
 					colors: select( 'core/block-editor' ).getSettings().colors || [],
 				};
 			},
-			[ featuredId ]
+			[ imageId ]
 		);
 		const imageUrl = selected.media && selected.media.source_url;
 
@@ -113,10 +131,20 @@
 			classes.push( 'has-no-image' );
 		}
 
-		const blockProps = blockEditor.useBlockProps( {
-			className: classes.join( ' ' ),
-			style: { minHeight: attributes.minHeight + 'px' },
-		} );
+		const wrapper = options.wrapper;
+		const coverStyle = { minHeight: attributes.minHeight + 'px' };
+		let blockProps;
+		let coverProps;
+		if ( wrapper ) {
+			blockProps = blockEditor.useBlockProps( { className: wrapper.className } );
+			coverProps = {
+				className: classes.concat( wrapper.cover.className || [] ).join( ' ' ),
+				style: Object.assign( {}, wrapper.cover.style, coverStyle ),
+			};
+		} else {
+			blockProps = blockEditor.useBlockProps( { className: classes.join( ' ' ), style: coverStyle } );
+			coverProps = blockProps;
+		}
 
 		const toolbar = el(
 			blockEditor.BlockControls,
@@ -142,7 +170,7 @@
 			el(
 				components.PanelBody,
 				{ title: __( 'Settings', 'multisite-tools' ) },
-				isEditable( context ) && ! featuredId && el(
+				! ownImage && isEditable( context ) && ! featuredId && el(
 					'p',
 					{ className: 'components-base-control__help' },
 					__( 'Set a featured image in the post settings to use it as the background.', 'multisite-tools' )
@@ -158,7 +186,7 @@
 						setAttributes( { minHeight: value || 400 } );
 					},
 				} ),
-				el( components.ToggleControl, {
+				undefined !== options.link ? options.link : el( components.ToggleControl, {
 					label: __( 'Link to post', 'multisite-tools' ),
 					help: __( 'Makes the whole block a link, e.g. in a Query Loop.', 'multisite-tools' ),
 					checked: attributes.isLink,
@@ -168,13 +196,14 @@
 				} ),
 				el( components.ToggleControl, {
 					label: __( 'Tilt text', 'multisite-tools' ),
-					help: __( 'Rotates the text by a different angle for each post.', 'multisite-tools' ),
+					help: options.tiltHelp || __( 'Rotates the text by a different angle for each post.', 'multisite-tools' ),
 					checked: attributes.tilt,
 					onChange: function ( value ) {
 						setAttributes( { tilt: value } );
 					},
 				} ),
-				attributes.tilt && el( components.RangeControl, {
+				attributes.tilt && options.tilt,
+				attributes.tilt && ! options.tilt && el( components.RangeControl, {
 					label: __( 'Maximum tilt (degrees)', 'multisite-tools' ),
 					value: attributes.maxTilt,
 					min: 1,
@@ -236,7 +265,25 @@
 						},
 					} )
 				)
-			)
+			),
+			options.inspector
+		);
+
+		const cover = el(
+			'div',
+			coverProps,
+			imageUrl && el( 'img', {
+				className: 'mst-cover__image',
+				src: imageUrl,
+				alt: '',
+				style: { objectPosition: ( focalPoint.x * 100 ) + '% ' + ( focalPoint.y * 100 ) + '%' },
+			} ),
+			el( 'span', {
+				className: 'mst-cover__overlay',
+				style: { backgroundColor: attributes.overlayColor, opacity: attributes.dimRatio / 100 },
+				'aria-hidden': true,
+			} ),
+			options.text
 		);
 
 		return el(
@@ -244,22 +291,7 @@
 			null,
 			toolbar,
 			inspector,
-			el(
-				'div',
-				blockProps,
-				imageUrl && el( 'img', {
-					className: 'mst-cover__image',
-					src: imageUrl,
-					alt: '',
-					style: { objectPosition: ( focalPoint.x * 100 ) + '% ' + ( focalPoint.y * 100 ) + '%' },
-				} ),
-				el( 'span', {
-					className: 'mst-cover__overlay',
-					style: { backgroundColor: attributes.overlayColor, opacity: attributes.dimRatio / 100 },
-					'aria-hidden': true,
-				} ),
-				options.text
-			)
+			wrapper ? el( 'div', blockProps, cover, wrapper.after ) : cover
 		);
 	}
 

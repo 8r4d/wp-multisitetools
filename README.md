@@ -122,18 +122,29 @@ It does nothing on sites running Yoast SEO, Rank Math, All in One SEO, SEOPress 
 
 ### Design blocks
 
-Adds blocks to the editor on every site, under the **Theme** category in the inserter. Both show a post's featured image as a full-bleed background, under a coloured overlay, with text on top:
+Adds blocks to the editor on every site, under the **Theme** category in the inserter. Each shows an image as a full-bleed background, under a coloured overlay, with text on top. The first two use the post's featured image:
 
 - **Featured Excerpt**: the post's excerpt. Made for the top of a post or a single-post template. With no excerpt set, WordPress generates one from the content, shown greyed out in the editor until you write your own.
 - **Featured Title**: the post's title as a heading (H2 by default). Made for blog index tiles: put it in the **Post Template** of a Query Loop, e.g. in the Home or Index template in the Site Editor. It links to the post by default.
+- **Featured Link**: promotes a link within a post or page. Choose any image from the media library (**Add image** / **Replace image** in the toolbar), type the text over it (a heading, H2 by default, with bold and italic allowed), and set the link with the toolbar's link button, optionally opening in a new tab. Below the image is a description, made of paragraphs, headings, lists and buttons, each styled with its own block settings. See [Featured Link](#featured-link) below for how it differs.
 
 In the toolbar, set the text's vertical position and alignment (and, for Featured Title, the heading level; on WordPress before 6.4 that's in the sidebar instead). In the sidebar, set the minimum height, the image focal point, the overlay colour and opacity, a text highlight colour, a tilt, and whether the whole block links to the post. **Tilt text** rotates the excerpt or title by an angle between ± the **Maximum tilt** (15° by default), for a scattered look across Query Loop tiles; each post gets its own angle from its ID, so it stays the same on every visit and matches between the editor and the front end. The text highlight puts a bar of colour behind each line of text (e.g. black bars behind white text) to keep it readable over busy images; it can be semi-transparent, and clearing it removes it. They also support wide/full width, text colour, typography (font family, size, weight, style, line height, letter spacing and letter case) and padding. Font families come from the theme: block themes and themes with a `theme.json` font palette offer them; other classic themes show no font family option. A title keeps the theme's heading styles except for the typography settings you change on the block.
 
 Used on the post itself, the text can be typed straight into the block and is saved as the post's excerpt or title; in a Query Loop it's read-only. Without a featured image a block shows the overlay on a dark background, and with neither an image nor text it outputs nothing. Featured Excerpt also outputs nothing on a password-protected post.
 
+#### Featured Link
+
+Featured Link has every setting the other two have, with a few differences, since it isn't tied to a post:
+
+- **Tilt text** is on by default and rotates the text by a fixed **Angle** (−45° to 45°, −5° by default) instead of a per-post angle.
+- **Make the whole image a link** (on by default, once a link is set) makes the whole image clickable. With it off, only the text is a link, and it's underlined.
+- Text colour, typography and padding style the image and its text, not the description.
+
+The image and text are rendered on the server like the other blocks. The description is saved in the post content. With no image, text or description it outputs nothing; with only a description it shows just that. The image is decorative (empty alt text), so put the meaning in the text.
+
 The blocks are rendered on the server, so they always show the post's current image and text. Switching the module off leaves the blocks in post content but they output nothing until it's switched back on. Blocks need WordPress 5.8 or later.
 
-To add a block, create `includes/blocks/<name>/` with a `block.json`, `index.js` (plain JS using the `wp.*` globals, since there's no build step), `index.asset.php` listing its script dependencies and `render.php`, then add `<name>` to `MST_Blocks::BLOCKS`. Code shared between blocks lives in `includes/blocks/shared/`: the featured cover's editor script (`window.mstFeaturedCover`), stylesheet and `MST_Blocks::render_cover()`.
+To add a block, create `includes/blocks/<name>/` with a `block.json`, `index.js` (plain JS using the `wp.*` globals, since there's no build step), `index.asset.php` listing its script dependencies and `render.php`, then add `<name>` to `MST_Blocks::BLOCKS`. Code shared between blocks lives in `includes/blocks/shared/`: the featured cover's editor script (`window.mstFeaturedCover`), stylesheet, `MST_Blocks::render_cover()` for a post's featured image, and `MST_Blocks::cover()` and `MST_Blocks::support_styles()` for a block that brings its own image or wraps the cover with more content.
 
 ### Hide usernames
 
