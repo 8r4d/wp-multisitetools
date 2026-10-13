@@ -8,7 +8,7 @@ Copy this folder to `wp-content/plugins/multisite-tools/` and **Network Activate
 
 ## Settings
 
-**Network Admin › Settings › Multisite Multitools** (also linked from the plugin's row on Network Admin › Plugins) has a tab for each module category (**Network administration**, **Content & publishing**, **Sharing & SEO**, **Blocks** and **Security & privacy**), each listing its modules with a checkbox to switch them on or off network-wide. Each tab saves only its own modules. Modules are on by default, including newly added ones, until they're switched off. The exception is the hardening switches on the Security & privacy tab (Disable XML-RPC, Disable file editor, Hide WordPress version), which start off because they can change how sites behave.
+**Network Admin › Settings › Multisite Multitools** (also linked from the plugin's row on Network Admin › Plugins) has a tab for each module category (**Network administration**, **Content & publishing**, **Sharing & SEO**, **Blocks** and **Security & privacy**), each listing its modules with a checkbox to switch them on or off network-wide. Each tab saves only its own modules. Modules are on by default, including newly added ones, until they're switched off. The exceptions are Hide toolbar comments and the hardening switches on the Security & privacy tab (Disable XML-RPC, Disable file editor, Hide WordPress version), which start off because they can change how sites behave.
 
 The **Site colours** tab sets a colour for each active site, using the standard WordPress colour picker. The colour marks the site wherever the plugin lists sites: the Calendar, the Posts by Site widget, the Plugin and Theme usage columns, the Copy to site confirmation and, with the Toolbar site colours module, the admin toolbar. Sites without a custom colour get a default from a 10-colour palette based on their site ID, so a site has the same colour on every screen and for every user. **Default** in the picker clears a custom colour. Deleting a site removes its colour.
 
@@ -66,6 +66,10 @@ Shows each site's colour (from the **Site colours** tab) in the admin toolbar:
 Adds a **N Scheduled** item to the admin toolbar on each site, for users who can edit posts, linking to that site's scheduled posts. It's hidden in Network Admin. It uses the same toolbar ID as the standalone QueueBar plugin, so having both active shows a single item.
 
 It also adds a **Posts by Site** widget to Network Admin › Dashboard: a table of every active site (archived, spam and deactivated sites are left out) with its number of published, scheduled and draft posts, plus a totals row. Each count links to that site's filtered Posts screen. The counts are cached in a site transient that's cleared whenever a post changes status or is deleted on any site, a site's name changes, or a site is added, removed or updated, and it expires after an hour as a fallback.
+
+### Hide toolbar comments
+
+Removes the comments bubble, with its count of comments awaiting moderation, from the admin toolbar on every site. Comments are still under **Comments** in each site's admin menu. It starts **off**, since it changes the toolbar for everyone.
 
 ### Default author
 
