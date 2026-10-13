@@ -28,11 +28,6 @@ class MST_Related_Posts {
 	const DEFAULT_COUNT = 3;
 	const MAX_COUNT     = 12;
 
-	/**
-	 * Most recent matching posts read from each source site before ranking.
-	 */
-	const POOL = 20;
-
 	const CACHE_TTL = 12 * HOUR_IN_SECONDS;
 	const SHORTCODE = 'related_posts';
 	const HANDLE    = 'mst-related-posts';
@@ -285,10 +280,10 @@ class MST_Related_Posts {
 	}
 
 	/**
-	 * Scores each source site's most recent POOL posts sharing a tag or
-	 * category with $post: 2 points per shared tag, 1 per shared category.
-	 * Terms are matched by slug, since each site has its own terms. Each
-	 * site's default category ("Uncategorized") is ignored.
+	 * The posts sharing the most tags or categories with $post, across the
+	 * source sites: 2 points per shared tag, 1 per shared category, newest
+	 * first among equals. Terms are matched by slug, since each site has its
+	 * own terms. Each site's default category ("Uncategorized") is ignored.
 	 *
 	 * @param WP_Post $post
 	 * @param int[]   $site_ids
@@ -317,38 +312,20 @@ class MST_Related_Posts {
 				continue;
 			}
 
-			// Permalinks, terms and thumbnails need the site's own context.
+			// Terms, permalinks and thumbnails need the site's own context.
 			switch_to_blog( $site_id );
 
-			$site_cats = array_values( array_diff( $cats, array( $this->default_category_slug() ) ) );
-			$tax_query = array( 'relation' => 'OR' );
+			$tag_ids = $this->term_ids( 'post_tag', $tags );
+			$cat_ids = $this->term_ids( 'category', array_diff( $cats, array( $this->default_category_slug() ) ) );
+			$scores  = $this->top_scores( array_merge( $tag_ids, $cat_ids ), $tag_ids, $home === $site_id ? $post->ID : 0, $count );
 
-			if ( $tags ) {
-				$tax_query[] = array(
-					'taxonomy' => 'post_tag',
-					'field'    => 'slug',
-					'terms'    => $tags,
-				);
-			}
-			if ( $site_cats ) {
-				$tax_query[] = array(
-					'taxonomy' => 'category',
-					'field'    => 'slug',
-					'terms'    => $site_cats,
-				);
-			}
-
-			if ( count( $tax_query ) > 1 ) {
+			if ( $scores ) {
 				$query = new WP_Query(
 					array(
 						'post_type'           => 'post',
 						'post_status'         => 'publish',
-						'has_password'        => false,
-						'posts_per_page'      => self::POOL,
-						'post__not_in'        => $home === $site_id ? array( $post->ID ) : array(),
-						'tax_query'           => $tax_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
-						'orderby'             => 'date',
-						'order'               => 'DESC',
+						'post__in'            => array_keys( $scores ),
+						'posts_per_page'      => $count,
 						'ignore_sticky_posts' => true,
 						'no_found_rows'       => true,
 					)
@@ -369,7 +346,7 @@ class MST_Related_Posts {
 						'site_id'   => $site_id,
 						'site_name' => $site_name,
 						'site_url'  => $site_url,
-						'score'     => 2 * $this->shared( 'post_tag', $tags ) + $this->shared( 'category', $site_cats ),
+						'score'     => $scores[ get_the_ID() ],
 					);
 				}
 
@@ -379,6 +356,7 @@ class MST_Related_Posts {
 			restore_current_blog();
 		}
 
+		// Each site's best $count are enough to hold the network's best $count.
 		usort(
 			$related,
 			function ( $a, $b ) {
@@ -390,21 +368,78 @@ class MST_Related_Posts {
 	}
 
 	/**
-	 * How many of $slugs the current post in the loop has in $taxonomy.
-	 * WP_Query has already primed the term cache.
+	 * The current site's term taxonomy IDs for the given slugs.
 	 *
 	 * @param string   $taxonomy
 	 * @param string[] $slugs
-	 * @return int
+	 * @return int[]
 	 */
-	private function shared( $taxonomy, $slugs ) {
-		$terms = get_the_terms( get_the_ID(), $taxonomy );
-
-		if ( empty( $terms ) || is_wp_error( $terms ) ) {
-			return 0;
+	private function term_ids( $taxonomy, $slugs ) {
+		if ( empty( $slugs ) ) {
+			return array();
 		}
 
-		return count( array_intersect( wp_list_pluck( $terms, 'slug' ), $slugs ) );
+		$ids = get_terms(
+			array(
+				'taxonomy'   => $taxonomy,
+				'slug'       => array_values( $slugs ),
+				'fields'     => 'tt_ids',
+				'hide_empty' => true,
+			)
+		);
+
+		return is_wp_error( $ids ) ? array() : array_map( 'intval', $ids );
+	}
+
+	/**
+	 * Scores the current site's published posts by how many of the given
+	 * terms they have, in one query, so the best matches are found however
+	 * many posts share a term.
+	 *
+	 * @param int[] $term_ids Term taxonomy IDs to match.
+	 * @param int[] $tag_ids  The subset worth 2 points; the rest are worth 1.
+	 * @param int   $exclude  Post ID to leave out, or 0.
+	 * @param int   $limit
+	 * @return array<int, int> Post ID => score, best first.
+	 */
+	private function top_scores( $term_ids, $tag_ids, $exclude, $limit ) {
+		global $wpdb;
+
+		if ( empty( $term_ids ) ) {
+			return array();
+		}
+
+		// One point per shared term, plus one more per shared tag.
+		$score = $tag_ids
+			? 'COUNT(*) + SUM(tr.term_taxonomy_id IN (' . implode( ',', array_map( 'intval', $tag_ids ) ) . '))'
+			: 'COUNT(*)';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $score and the ID list are built from integers.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT p.ID, {$score} AS score
+				FROM {$wpdb->term_relationships} tr
+				INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id
+				WHERE tr.term_taxonomy_id IN (" . implode( ',', array_map( 'intval', $term_ids ) ) . ")
+					AND p.post_type = 'post'
+					AND p.post_status = 'publish'
+					AND p.post_password = ''
+					AND p.ID <> %d
+				GROUP BY p.ID
+				ORDER BY score DESC, p.post_date_gmt DESC
+				LIMIT %d",
+				$exclude,
+				$limit
+			)
+		);
+		// phpcs:enable
+
+		$scores = array();
+		foreach ( $rows as $row ) {
+			$scores[ (int) $row->ID ] = (int) $row->score;
+		}
+
+		return $scores;
 	}
 
 	/**
