@@ -1,0 +1,62 @@
+/**
+ * Related posts module: styles for the list after posts and the
+ * [related_posts] shortcode.
+ * Edit freely; nothing here is generated or overwritten by the plugin.
+ * Class names all use the "mst-related" prefix to avoid clashing with your theme.
+ */
+
+.mst-related {
+	margin-top: 3rem;
+}
+
+.mst-related-heading {
+	margin: 0 0 1rem;
+	font-size: 2rem;
+}
+
+.mst-related-items {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 1.5rem;
+}
+
+.mst-related-item {
+	margin: 0;
+}
+
+.mst-related-link {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+}
+
+.mst-related-thumb {
+	display: block;
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	height: auto;
+	object-fit: cover;
+	border-radius: 6px;
+	margin-bottom: .5rem;
+}
+
+.mst-related-title {
+	display: block;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.mst-related-link:hover .mst-related-title,
+.mst-related-link:focus .mst-related-title {
+	text-decoration: underline;
+}
+
+.mst-related-meta {
+	margin: .3rem 0 0;
+	font-size: .85rem;
+	color: #777;
+}
+
+.mst-related-meta a {
+	color: inherit;
+}

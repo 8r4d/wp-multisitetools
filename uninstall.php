@@ -6,16 +6,22 @@ delete_site_transient( 'mst_queuebar_counts' );
 delete_site_transient( 'mst_theme_usage' );
 delete_site_transient( 'mst_missed_schedule_scan' );
 delete_site_transient( 'mst_network_digest' );
+delete_site_option( 'mst_related_posts_generation' );
 delete_site_option( 'mst_modules' );
 delete_site_option( 'mst_site_colors' );
 delete_site_option( 'mst_post_types_since' );
 delete_site_option( 'network_digest_source_site_ids' );
 delete_site_option( 'network_digest_posts_per_source' );
 
-// Per-site settings: Default author, Social graph's default image and Post
-// type inventory's snapshot.
+// Per-site settings: Default author, Social graph's default image, Post type
+// inventory's snapshot, and Related posts' settings and cached lists.
 foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $mst_site_id ) {
 	delete_blog_option( $mst_site_id, 'dpa_default_author' );
 	delete_blog_option( $mst_site_id, 'mst_social_image' );
 	delete_blog_option( $mst_site_id, 'mst_post_types' );
+	delete_blog_option( $mst_site_id, 'mst_related_posts' );
+
+	switch_to_blog( $mst_site_id );
+	delete_metadata( 'post', 0, '_mst_related_posts', '', true );
+	restore_current_blog();
 }

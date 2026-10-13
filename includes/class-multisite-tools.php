@@ -30,6 +30,7 @@ final class Multisite_Tools {
 		'calendar'            => 'MST_Calendar',
 		'missed-schedule'     => 'MST_Missed_Schedule',
 		'network-digest'      => 'MST_Network_Digest',
+		'related-posts'       => 'MST_Related_Posts',
 		'social-graph'        => 'MST_Social_Graph',
 		'blocks'              => 'MST_Blocks',
 		'hide-usernames'      => 'MST_Hide_Usernames',

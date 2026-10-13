@@ -114,6 +114,16 @@ Posts are read live from the source sites, not copied. The merged feed is cached
 
 It uses the same shortcode, settings and markup as the standalone Network Digest plugin, so existing pages and settings carry over. Deactivate the standalone plugin once this is enabled.
 
+### Related posts
+
+Shows posts that share tags or categories with the one being read, drawn from any sites on the network. Each site chooses its own sources under **Settings › Reading › Related posts**: tick any active sites (including itself), set how many posts to show (3 by default, up to 12), and choose whether they're added after each post automatically. Nothing is shown on a site until it picks at least one source.
+
+With **Show after each post** unticked, place `[related_posts]` where you want the list instead, e.g. in a post or a single-post template. `title` sets the heading, or `title=""` for none. The shortcode also stops the automatic list on a post that uses it, so it never shows twice.
+
+Terms are matched by slug, since each site has its own tags and categories: a post tagged `climate` on one site matches posts tagged `climate` on another. Each source site's 20 most recent matching posts are scored, 2 points per shared tag and 1 per shared category, and the highest-scoring are shown, newest first among equals. Each site's default category ("Uncategorized") is ignored, and posts with no other tags or categories show nothing. Only published, non-password-protected `post`s are shown, and archived, spam and deactivated sites are skipped. Each item shows the featured image, title and date, plus the site name when it's from another site, and links to the post.
+
+Each post's list is cached in its post meta (`_mst_related_posts`). A network-wide counter is bumped whenever a post is published, edited, unpublished or deleted on any site, a site's name changes, or a site is updated or removed, which makes every cached list rebuild on its next view. Changing a site's settings does the same for that site, and lists expire after 12 hours as a fallback. The styles are in `assets/related-posts.css`, and every class starts with `mst-related`, so themes can override them.
+
 ### Social graph
 
 Adds `og:image` and `twitter:image` meta tags (plus `twitter:card` set to `summary_large_image`) to single posts, pages and custom post types, so shared links on Threads, Facebook, X and others show a preview image. It uses the featured image, falling back to the site's **default sharing image** (set per site under **Settings › Reading › Social sharing**), then the site icon; if none exists, no tags are output.
