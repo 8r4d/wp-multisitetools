@@ -4,15 +4,17 @@
  * › Tags, so they can be brought into line by hand. Related posts matches
  * tags across sites by exact slug, so aligned tags give it more to match.
  *
- * It only reports. Every tag links to its own site's Edit Tag screen and
- * Posts list, where renames and merges are made.
+ * Every tag links to its own site's Edit Tag screen and Posts list, where
+ * renames and merges are made by hand. The one change made here is copying
+ * a tag that only one site has to another site.
  */
 
 defined( 'ABSPATH' ) || exit;
 
 class MST_Tag_Alignment {
 
-	const PAGE = 'mst-tags';
+	const PAGE        = 'mst-tags';
+	const COPY_ACTION = 'mst_copy_tag';
 
 	/**
 	 * Rows per page in each view.
@@ -46,7 +48,10 @@ class MST_Tag_Alignment {
 	}
 
 	public function register() {
-		add_action( 'network_admin_menu', array( $this, 'add_page' ) );
+		if ( is_network_admin() ) {
+			add_action( 'network_admin_menu', array( $this, 'add_page' ) );
+			add_action( 'network_admin_edit_' . self::COPY_ACTION, array( $this, 'handle_copy' ) );
+		}
 	}
 
 	public function add_page() {
@@ -113,6 +118,7 @@ class MST_Tag_Alignment {
 			<h1><?php esc_html_e( 'Tags', 'multisite-tools' ); ?></h1>
 			<?php
 			$this->print_styles();
+			$this->render_copy_notice( $all );
 			$this->render_filters( $all, $selected, $search, $view );
 			?>
 
@@ -211,6 +217,7 @@ class MST_Tag_Alignment {
 		$paged = min( $paged, $pages );
 		$items = array_slice( $items, ( $paged - 1 ) * self::PER_PAGE, self::PER_PAGE );
 		$notes = in_array( $view, array( 'shared', 'variants' ), true );
+		$copy  = 'single' === $view;
 
 		$this->render_pagination( $paged, $pages );
 		?>
@@ -222,6 +229,9 @@ class MST_Tag_Alignment {
 					<th scope="col" class="num"><?php esc_html_e( 'Posts', 'multisite-tools' ); ?></th>
 					<?php if ( $notes ) : ?>
 						<th scope="col"><?php esc_html_e( 'Notes', 'multisite-tools' ); ?></th>
+					<?php endif; ?>
+					<?php if ( $copy ) : ?>
+						<th scope="col"><?php esc_html_e( 'Copy to', 'multisite-tools' ); ?></th>
 					<?php endif; ?>
 				</tr>
 			</thead>
@@ -249,6 +259,9 @@ class MST_Tag_Alignment {
 									}
 									?>
 								</td>
+							<?php endif; ?>
+							<?php if ( $copy ) : ?>
+								<td><?php $this->render_copy_form( $terms, $selected ); ?></td>
 							<?php endif; ?>
 						</tr>
 						<?php
@@ -340,6 +353,135 @@ class MST_Tag_Alignment {
 		if ( reset( $totals ) > next( $totals ) ) {
 			echo '<span class="mst-flag mst-flag-most">' . esc_html__( 'Top row is most used', 'multisite-tools' ) . '</span>';
 		}
+	}
+
+	/**
+	 * A form to copy a one-site tag to another of the compared sites.
+	 *
+	 * @param object[]          $terms    Site ID => term, with one site.
+	 * @param array<int, array> $selected The sites being compared.
+	 */
+	private function render_copy_form( $terms, $selected ) {
+		$targets = array_diff_key( $selected, $terms );
+		?>
+		<form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=' . self::COPY_ACTION ) ); ?>" class="mst-copy-tag">
+			<?php wp_nonce_field( self::COPY_ACTION ); ?>
+			<input type="hidden" name="source" value="<?php echo esc_attr( key( $terms ) ); ?>">
+			<input type="hidden" name="term" value="<?php echo esc_attr( reset( $terms )->term_id ); ?>">
+			<label class="screen-reader-text" for="mst-copy-<?php echo esc_attr( key( $terms ) . '-' . reset( $terms )->term_id ); ?>"><?php esc_html_e( 'Site to copy the tag to', 'multisite-tools' ); ?></label>
+			<select name="target" id="mst-copy-<?php echo esc_attr( key( $terms ) . '-' . reset( $terms )->term_id ); ?>">
+				<?php foreach ( $targets as $id => $site ) : ?>
+					<option value="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $site['name'] ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<button type="submit" class="button button-small"><?php esc_html_e( 'Copy', 'multisite-tools' ); ?></button>
+		</form>
+		<?php
+	}
+
+	/**
+	 * The result of copying a tag, after handle_copy() redirects back.
+	 *
+	 * @param array<int, array> $all Every active site's details.
+	 */
+	private function render_copy_notice( $all ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- display only.
+		$copied  = ! empty( $_GET['copied'] );
+		$error   = sanitize_key( wp_unslash( $_GET['copy_error'] ?? '' ) );
+		$site_id = absint( $_GET['site'] ?? 0 );
+		$term_id = absint( $_GET['term'] ?? 0 );
+		// phpcs:enable
+
+		if ( ! $copied && '' === $error ) {
+			return;
+		}
+
+		$site = $all[ $site_id ] ?? null;
+		$edit = $site && $term_id
+			? sprintf( ' <a href="%s">%s</a>', esc_url( $site['admin_url'] . 'term.php?taxonomy=post_tag&tag_ID=' . $term_id ), esc_html__( 'Edit tag', 'multisite-tools' ) )
+			: '';
+
+		if ( $copied && $site ) {
+			$class = 'success';
+			/* translators: %s: site name */
+			$message = sprintf( __( 'Tag copied to %s.', 'multisite-tools' ), $site['name'] );
+		} elseif ( 'exists' === $error && $site ) {
+			$class = 'warning';
+			/* translators: %s: site name */
+			$message = sprintf( __( '%s already has a tag with that name or slug, so nothing was copied.', 'multisite-tools' ), $site['name'] );
+		} elseif ( 'missing' === $error ) {
+			$class   = 'error';
+			$message = __( 'That tag no longer exists on its site.', 'multisite-tools' );
+		} elseif ( 'site' === $error ) {
+			$class   = 'error';
+			$message = __( 'Choose another active site to copy the tag to.', 'multisite-tools' );
+		} else {
+			$class   = 'error';
+			$message = __( 'The tag couldn\'t be copied.', 'multisite-tools' );
+		}
+
+		printf( '<div class="notice notice-%s is-dismissible"><p>%s%s</p></div>', esc_attr( $class ), esc_html( $message ), $edit ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	/**
+	 * Copies a tag's name, slug and description from one site to another,
+	 * unless the target already has a tag with that name or slug, then
+	 * returns to the report.
+	 */
+	public function handle_copy() {
+		check_admin_referer( self::COPY_ACTION );
+
+		if ( ! current_user_can( 'manage_network' ) ) {
+			wp_die( esc_html__( 'Sorry, you are not allowed to do that.', 'multisite-tools' ), 403 );
+		}
+
+		$source  = absint( $_POST['source'] ?? 0 );
+		$target  = absint( $_POST['target'] ?? 0 );
+		$term_id = absint( $_POST['term'] ?? 0 );
+		$active  = array_map( 'intval', wp_list_pluck( MST_Sites::active(), 'blog_id' ) );
+		$result  = array( 'site' => $target );
+
+		if ( $source === $target || ! in_array( $source, $active, true ) || ! in_array( $target, $active, true ) ) {
+			$result['copy_error'] = 'site';
+		} else {
+			switch_to_blog( $source );
+			$term = get_term( $term_id, 'post_tag' );
+			restore_current_blog();
+
+			if ( ! $term instanceof WP_Term ) {
+				$result['copy_error'] = 'missing';
+			} else {
+				switch_to_blog( $target );
+				$existing = get_term_by( 'slug', $term->slug, 'post_tag' );
+				$inserted = $existing ? null : wp_insert_term(
+					$term->name,
+					'post_tag',
+					array(
+						'slug'        => $term->slug,
+						'description' => $term->description,
+					)
+				);
+				restore_current_blog();
+
+				if ( $existing ) {
+					$result['copy_error'] = 'exists';
+					$result['term']       = $existing->term_id;
+				} elseif ( is_wp_error( $inserted ) ) {
+					// A tag with the same name but another slug: the error's data is its ID.
+					$result['copy_error'] = 'term_exists' === $inserted->get_error_code() ? 'exists' : 'failed';
+					$result['term']       = absint( $inserted->get_error_data() );
+				} else {
+					$result['copied'] = 1;
+					$result['term']   = $inserted['term_id'];
+				}
+			}
+		}
+
+		$back = wp_get_referer();
+		$back = $back ? $back : network_admin_url( 'sites.php?page=' . self::PAGE . '&view=single' );
+
+		wp_safe_redirect( add_query_arg( $result, remove_query_arg( array( 'copied', 'copy_error', 'site', 'term' ), $back ) ) );
+		exit;
 	}
 
 	/**
@@ -680,6 +822,8 @@ class MST_Tag_Alignment {
 			.mst-flag-differ, .mst-flag-spelling { background: #fcf9e8; color: #8a6d00; }
 			.mst-flag-words { background: #f0f6fc; color: #135e96; }
 			.mst-flag-most { background: #edfaef; color: #00660e; }
+			.mst-copy-tag { display: flex; gap: 4px; align-items: center; }
+			.mst-copy-tag select { max-width: 180px; }
 			.mst-sites summary { cursor: pointer; color: #2271b1; }
 			.mst-sites ul { margin: 4px 0 0; }
 			.mst-sites li { margin: 0; }

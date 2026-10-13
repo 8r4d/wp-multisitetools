@@ -126,13 +126,13 @@ Each post's list is cached in its post meta (`_mst_related_posts`). A network-wi
 
 ### Tag alignment
 
-Adds **Network Admin › Sites › Tags**: a report comparing post tags across sites, to help bring them into line. Since Related posts matches tags across sites by exact slug, aligned tags give it more to match. It only reports: each tag lists the sites that have it, with its post count on each (linking to that site's Posts screen filtered by the tag) and an **Edit** link to that site's Edit Tag screen, where any changes are made by hand.
+Adds **Network Admin › Sites › Tags**: a report comparing post tags across sites, to help bring them into line. Since Related posts matches tags across sites by exact slug, aligned tags give it more to match. Each tag lists the sites that have it, with its post count on each (linking to that site's Posts screen filtered by the tag) and an **Edit** link to that site's Edit Tag screen, where changes are made by hand. The only change made from the report itself is copying a tag to another site (see **One site only**).
 
 Choose which sites to compare (all active sites by default) and filter by tag name or slug. There are four tabs:
 
 - **Shared**: tags whose slug is used on two or more of the chosen sites, most widespread first. **Names differ** flags a tag named differently on different sites (each site's name is shown beside it), and **Not on N sites** lists the chosen sites without it, each linking to a search of that site's tags for the name in case it has a variant.
 - **Variants**: tags with different slugs that are probably the same tag, on one site or across sites, most used first. **Same words** means they match once lowercased, with hyphens, "and" and WordPress's `-2` suffix for duplicate slugs removed and each word made singular (`photos`, `photo-2` and `photo`; `e-mail` and `email`). A number that's part of the tag's name is kept, so `covid-19` doesn't match `covid`. **Similar spelling** means one letter apart, for tags of 8 or more letters with the same first letter (`photography` and `photograpy`). Tags that only contain one another, like `climate` and `climate-change`, aren't matched. WordPress can't merge two tags on the same site, so to fold one into another, click the old tag's post count, add the kept tag with **Bulk actions › Edit**, then delete the old tag.
-- **One site only**: tags only one of the chosen sites uses, most used first.
+- **One site only**: tags only one of the chosen sites uses, most used first. **Copy to** creates the tag on another of the chosen sites, with the same name, slug and description but no posts. Nothing is copied if that site already has a tag with the same name or slug; you're linked to it instead.
 - **Unused**: tags with no published posts, including tags used only on drafts or scheduled posts.
 
 Post counts are WordPress's own term counts, which count published posts. Tags are read fresh on each visit with one query per 100 sites, and each tab shows 100 rows per page. Archived, spam and deactivated sites aren't included.
