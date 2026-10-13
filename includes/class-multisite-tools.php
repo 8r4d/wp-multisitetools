@@ -31,6 +31,7 @@ final class Multisite_Tools {
 		'missed-schedule'     => 'MST_Missed_Schedule',
 		'network-digest'      => 'MST_Network_Digest',
 		'related-posts'       => 'MST_Related_Posts',
+		'tag-alignment'       => 'MST_Tag_Alignment',
 		'social-graph'        => 'MST_Social_Graph',
 		'blocks'              => 'MST_Blocks',
 		'hide-usernames'      => 'MST_Hide_Usernames',

@@ -124,6 +124,19 @@ Terms are matched by exact slug, since each site has its own tags and categories
 
 Each post's list is cached in its post meta (`_mst_related_posts`). A network-wide counter is bumped whenever a post is published, edited, unpublished or deleted on any site, a site's name changes, or a site is updated or removed, which makes every cached list rebuild on its next view. Changing a site's settings does the same for that site, and lists expire after 12 hours as a fallback. The styles are in `assets/related-posts.css`, and every class starts with `mst-related`, so themes can override them.
 
+### Tag alignment
+
+Adds **Network Admin › Sites › Tags**: a report comparing post tags across sites, to help bring them into line. Since Related posts matches tags across sites by exact slug, aligned tags give it more to match. It only reports: each tag lists the sites that have it, with its post count on each (linking to that site's Posts screen filtered by the tag) and an **Edit** link to that site's Edit Tag screen, where any changes are made by hand.
+
+Choose which sites to compare (all active sites by default) and filter by tag name or slug. There are four tabs:
+
+- **Shared**: tags whose slug is used on two or more of the chosen sites, most widespread first. **Names differ** flags a tag named differently on different sites (each site's name is shown beside it), and **Not on N sites** lists the chosen sites without it, each linking to a search of that site's tags for the name in case it has a variant.
+- **Variants**: tags with different slugs that are probably the same tag, on one site or across sites, most used first. **Same words** means they match once lowercased, with hyphens, "and" and WordPress's `-2` suffix for duplicate slugs removed and each word made singular (`photos`, `photo-2` and `photo`; `e-mail` and `email`). A number that's part of the tag's name is kept, so `covid-19` doesn't match `covid`. **Similar spelling** means one letter apart, for tags of 8 or more letters with the same first letter (`photography` and `photograpy`). Tags that only contain one another, like `climate` and `climate-change`, aren't matched. WordPress can't merge two tags on the same site, so to fold one into another, click the old tag's post count, add the kept tag with **Bulk actions › Edit**, then delete the old tag.
+- **One site only**: tags only one of the chosen sites uses, most used first.
+- **Unused**: tags with no published posts, including tags used only on drafts or scheduled posts.
+
+Post counts are WordPress's own term counts, which count published posts. Tags are read fresh on each visit with one query per 100 sites, and each tab shows 100 rows per page. Archived, spam and deactivated sites aren't included.
+
 ### Social graph
 
 Adds `og:image` and `twitter:image` meta tags (plus `twitter:card` set to `summary_large_image`) to single posts, pages and custom post types, so shared links on Threads, Facebook, X and others show a preview image. It uses the featured image, falling back to the site's **default sharing image** (set per site under **Settings › Reading › Social sharing**), then the site icon; if none exists, no tags are output.
