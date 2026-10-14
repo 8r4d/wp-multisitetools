@@ -334,23 +334,22 @@ class MST_Related_Posts {
 				$site_name = get_bloginfo( 'name' );
 				$site_url  = home_url( '/' );
 
-				while ( $query->have_posts() ) {
-					$query->the_post();
-
+				// Not the_post(): this runs inside the_content, and the_post()
+				// and wp_reset_postdata() fire the 'the_post' action, which
+				// other plugins use to reset per-post state (e.g. footnotes).
+				foreach ( $query->posts as $related_post ) {
 					$related[] = array(
-						'title'     => get_the_title(),
-						'permalink' => get_permalink(),
-						'date'      => (int) get_post_time( 'U', true ),
-						'date_fmt'  => get_the_date(),
-						'thumbnail' => get_the_post_thumbnail_url( get_the_ID(), 'medium' ),
+						'title'     => get_the_title( $related_post ),
+						'permalink' => get_permalink( $related_post ),
+						'date'      => (int) get_post_time( 'U', true, $related_post ),
+						'date_fmt'  => get_the_date( '', $related_post ),
+						'thumbnail' => get_the_post_thumbnail_url( $related_post, 'medium' ),
 						'site_id'   => $site_id,
 						'site_name' => $site_name,
 						'site_url'  => $site_url,
-						'score'     => $scores[ get_the_ID() ],
+						'score'     => $scores[ $related_post->ID ],
 					);
 				}
-
-				wp_reset_postdata();
 			}
 
 			restore_current_blog();
