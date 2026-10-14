@@ -35,6 +35,7 @@ final class Multisite_Tools {
 		'tag-alignment'         => 'MST_Tag_Alignment',
 		'social-graph'          => 'MST_Social_Graph',
 		'blocks'                => 'MST_Blocks',
+		'user-audit'            => 'MST_User_Audit',
 		'hide-usernames'        => 'MST_Hide_Usernames',
 		'disable-xmlrpc'        => 'MST_Disable_Xmlrpc',
 		'disable-file-editor'   => 'MST_Disable_File_Editor',

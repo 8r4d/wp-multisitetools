@@ -92,7 +92,14 @@ Posts appear at their own site's local date and time, since sites can be in diff
 
 Adds a **Copy to site…** link to each post and page in the Posts and Pages lists. It opens a screen to choose the target site (any other active site you belong to, or any site for super admins), then creates a **draft** copy there with the same title, content, excerpt, categories and tags (created on the target if missing) and featured image (copied into the target's media library). You need to be able to create that kind of content on the target site.
 
-Images and links inside the content are copied as-is, so they still point to the original site. If the featured image file can't be read (e.g. media is offloaded to S3), the copy is made without it and you're told. Custom fields and custom post types aren't copied. If the target site uses Default author, the copy gets that site's default author.
+With **Copy media in the content** ticked (the default), files from the source site's media library that the content shows or links to (images, PDFs and so on) are copied into the target's media library too, with their title, caption, description and alt text, and the content is updated to use them: file URLs, `wp-image-N` classes and the media IDs in image, gallery, cover, media & text, file, video and audio blocks. A resized image (`photo-300x200.jpg`) is traced back to its attachment and points to the target's file of the same size, or the full size if the target has no such size. A file is copied once however often the content uses it, and once if it's also the featured image. Files outside the media library, on other sites or that can't be read (e.g. offloaded to S3) are left pointing to the original site, and you're told how many. Untick the option to leave all media pointing to the original site. Custom fields and custom post types aren't copied. If the target site uses Default author, the copy gets that site's default author.
+
+The copy remembers its original (in `_mst_copied_from` post meta) and the original its copies (`_mst_copies`):
+
+- In the Posts and Pages lists, a copy is labelled **Copy from *site*** and an original **Copied to *site*** (or **Copied to N sites**).
+- The Copy to site screen lists any existing copies, with **Edit the copy** links, and marks those sites in the list. Copying again still makes a separate copy.
+- Deleting a copy removes it from its original's list.
+- **Point search engines to this original** (off by default) makes the copy give the original as its canonical URL, so search engines treat the copy as a duplicate rather than competing with it. This applies only while the original is published and not password-protected, on an active site. It works with WordPress's own canonical tag, Yoast SEO and Rank Math. The copy's editor has a **Copied from** box linking to the original, where this can be changed later.
 
 ### Missed schedule fixer
 
@@ -130,14 +137,23 @@ Each post's list is cached in its post meta (`_mst_related_posts`). A network-wi
 
 ### Tag alignment
 
-Adds **Network Admin › Sites › Tags**: a report comparing post tags across sites, to help bring them into line. Since Related posts matches tags across sites by exact slug, aligned tags give it more to match. Each tag lists the sites that have it, with its post count on each (linking to that site's Posts screen filtered by the tag) and an **Edit** link to that site's Edit Tag screen, where changes are made by hand. The only change made from the report itself is copying a tag to another site (see **One site only**).
+Adds **Network Admin › Sites › Tags**: a report comparing post tags across sites, to help bring them into line. Since Related posts matches tags across sites by exact slug, aligned tags give it more to match. Each tag lists the sites that have it, with its post count on each (linking to that site's Posts screen filtered by the tag) and an **Edit** link to that site's Edit Tag screen, where other changes are made by hand. Two changes can be made from the report itself: copying a tag to another site (see **One site only**) and merging variants (see **Merging tags**).
 
 Choose which sites to compare (all active sites by default) and filter by tag name or slug. There are four tabs:
 
 - **Shared**: tags whose slug is used on two or more of the chosen sites, most widespread first. **Names differ** flags a tag named differently on different sites (each site's name is shown beside it), and **Not on N sites** lists the chosen sites without it, each linking to a search of that site's tags for the name in case it has a variant.
-- **Variants**: tags with different slugs that are probably the same tag, on one site or across sites, most used first. **Same words** means they match once lowercased, with hyphens, "and" and WordPress's `-2` suffix for duplicate slugs removed and each word made singular (`photos`, `photo-2` and `photo`; `e-mail` and `email`). A number that's part of the tag's name is kept, so `covid-19` doesn't match `covid`. **Similar spelling** means one letter apart, for tags of 8 or more letters with the same first letter (`photography` and `photograpy`). Tags that only contain one another, like `climate` and `climate-change`, aren't matched. WordPress can't merge two tags on the same site, so to fold one into another, click the old tag's post count, add the kept tag with **Bulk actions › Edit**, then delete the old tag.
+- **Variants**: tags with different slugs that are probably the same tag, on one site or across sites, most used first. **Same words** means they match once lowercased, with hyphens, "and" and WordPress's `-2` suffix for duplicate slugs removed and each word made singular (`photos`, `photo-2` and `photo`; `e-mail` and `email`). A number that's part of the tag's name is kept, so `covid-19` doesn't match `covid`. **Similar spelling** means one letter apart, for tags of 8 or more letters with the same first letter (`photography` and `photograpy`). Tags that only contain one another, like `climate` and `climate-change`, aren't matched. **Merge…** merges a group (see **Merging tags**).
 - **One site only**: tags only one of the chosen sites uses, most used first. **Copy to** creates the tag on another of the chosen sites, with the same name, slug and description but no posts. Nothing is copied if that site already has a tag with the same name or slug; you're linked to it instead.
 - **Unused**: tags with no published posts, including tags used only on drafts or scheduled posts.
+
+#### Merging tags
+
+**Merge…** on a Variants group opens a confirmation screen listing each compared site's tags in the group, with their post counts. Choose the slug to keep (the most used is preselected) and click **Merge tags**. On each site:
+
+- posts with any of the other tags get the kept tag instead (drafts and scheduled posts included), and the other tags are deleted, using WordPress's own `wp_delete_term()` with the kept tag as the replacement;
+- a site that doesn't have the kept tag gets it by renaming its most used tag in the group to the kept slug and the name most posts use for it elsewhere, so its posts and description carry over.
+
+Only the sites being compared are changed. Archive URLs for deleted slugs (`/tag/old-slug/`) stop working, and there's no undo. Related posts and Network digest caches are cleared afterwards.
 
 Post counts are WordPress's own term counts, which count published posts. Tags are read fresh on each visit with one query per 100 sites, and each tab shows 100 rows per page. Archived, spam and deactivated sites aren't included.
 
@@ -172,6 +188,19 @@ The image and text are rendered on the server like the other blocks. The descrip
 The blocks are rendered on the server, so they always show the post's current image and text. Switching the module off leaves the blocks in post content but they output nothing until it's switched back on. Blocks need WordPress 5.8 or later.
 
 To add a block, create `includes/blocks/<name>/` with a `block.json`, `index.js` (plain JS using the `wp.*` globals, since there's no build step), `index.asset.php` listing its script dependencies and `render.php`, then add `<name>` to `MST_Blocks::BLOCKS`. Code shared between blocks lives in `includes/blocks/shared/`: the featured cover's editor script (`window.mstFeaturedCover`), stylesheet, `MST_Blocks::render_cover()` for a post's featured image, and `MST_Blocks::cover()` and `MST_Blocks::support_styles()` for a block that brings its own image or wraps the cover with more content.
+
+### User audit
+
+Adds **Network Admin › Users › Audit**: every user in the network with their role on each site (each linking to that site's Users screen in Network Admin, with Administrator roles highlighted and archived, spam and deactivated sites labelled), their last login and when they registered. Users are flagged as:
+
+- **Super admin**,
+- **Admin on N sites**: the Administrator role on at least one site,
+- **No login in 90 days** / **Never logged in**, or
+- **No sites**: no role on any site and not a super admin, usually left behind when a site was deleted or they were removed from one.
+
+Tabs list each kind, with a search by username, name or email and 100 users per page. Admins who haven't logged in for 90 days are listed first and counted in a warning at the top, since unused accounts with admin rights are a common way in. It's a report only: change roles or remove users from the linked screens.
+
+WordPress doesn't record logins, so from when the module is switched on it saves each login's time in the user's `mst_last_login` meta. Users with a live login session also have that session's start time, which fills in for those who logged in before. Until logins have been recorded for 90 days, a user without a recorded login isn't flagged as inactive, and the page says when recording started. Switching the module off and on again restarts that clock, since logins weren't recorded in between. Everything is read fresh on each visit, with one query for users, one per 500 sites for roles and one for logins.
 
 ### Hide usernames
 

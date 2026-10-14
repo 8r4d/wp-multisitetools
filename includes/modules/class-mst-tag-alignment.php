@@ -5,16 +5,17 @@
  * tags across sites by exact slug, so aligned tags give it more to match.
  *
  * Every tag links to its own site's Edit Tag screen and Posts list, where
- * renames and merges are made by hand. The one change made here is copying
- * a tag that only one site has to another site.
+ * renames are made by hand. The changes made here are copying a tag that
+ * only one site has to another site, and merging variants into one tag.
  */
 
 defined( 'ABSPATH' ) || exit;
 
 class MST_Tag_Alignment {
 
-	const PAGE        = 'mst-tags';
-	const COPY_ACTION = 'mst_copy_tag';
+	const PAGE         = 'mst-tags';
+	const COPY_ACTION  = 'mst_copy_tag';
+	const MERGE_ACTION = 'mst_merge_tags';
 
 	/**
 	 * Rows per page in each view.
@@ -51,6 +52,7 @@ class MST_Tag_Alignment {
 		if ( is_network_admin() ) {
 			add_action( 'network_admin_menu', array( $this, 'add_page' ) );
 			add_action( 'network_admin_edit_' . self::COPY_ACTION, array( $this, 'handle_copy' ) );
+			add_action( 'network_admin_edit_' . self::MERGE_ACTION, array( $this, 'handle_merge' ) );
 		}
 	}
 
@@ -76,10 +78,11 @@ class MST_Tag_Alignment {
 		$picked = array_map( 'absint', (array) wp_unslash( $_GET['sites'] ?? array() ) );
 		$search = trim( sanitize_text_field( wp_unslash( $_GET['s'] ?? '' ) ) );
 		$paged  = max( 1, absint( $_GET['paged'] ?? 1 ) );
+		$merge  = array_map( 'strval', (array) wp_unslash( $_GET['tags'] ?? array() ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only used to look up existing slugs.
 		// phpcs:enable
 
 		$views = self::views();
-		$view  = isset( $views[ $view ] ) ? $view : 'shared';
+		$view  = isset( $views[ $view ] ) || 'merge' === $view ? $view : 'shared';
 
 		$all      = MST_Sites::details( MST_Sites::active() );
 		$selected = array_intersect_key( $all, array_flip( $picked ) );
@@ -92,7 +95,13 @@ class MST_Tag_Alignment {
 			's'     => '' !== $search ? rawurlencode( $search ) : false,
 		);
 
-		$tags  = $this->get_tags( $selected );
+		$tags = $this->get_tags( $selected );
+
+		if ( 'merge' === $view ) {
+			$this->render_merge( $tags, $merge, $all );
+			return;
+		}
+
 		$lists = array(
 			'shared'   => $this->shared( $tags ),
 			'variants' => $this->variants( $tags ),
@@ -119,6 +128,7 @@ class MST_Tag_Alignment {
 			<?php
 			$this->print_styles();
 			$this->render_copy_notice( $all );
+			$this->render_merge_notice();
 			$this->render_filters( $all, $selected, $search, $view );
 			?>
 
@@ -197,7 +207,7 @@ class MST_Tag_Alignment {
 	private function render_intro( $view ) {
 		$intros = array(
 			'shared'   => __( 'Tags used on two or more of the chosen sites, matched by slug as Related posts matches them. Fill gaps by adding a tag to the sites it\'s missing from, and make the names match where they differ.', 'multisite-tools' ),
-			'variants' => __( 'Tags that are probably the same but have different slugs, on one site or across sites. "Same words" means they differ only in plurals, hyphens, "and" or a -2 suffix; "Similar spelling" means one letter apart. Pick one slug to keep, then rename the others to match. WordPress can\'t merge two tags on the same site: click the post count to list the old tag\'s posts, add the kept tag with Bulk actions › Edit, then delete the old tag.', 'multisite-tools' ),
+			'variants' => __( 'Tags that are probably the same but have different slugs, on one site or across sites. "Same words" means they differ only in plurals, hyphens, "and" or a -2 suffix; "Similar spelling" means one letter apart. Merge… folds a group into the one slug you keep, on every compared site.', 'multisite-tools' ),
 			'single'   => __( 'Tags only one of the chosen sites uses. Well-used ones may be worth adding to other sites; rarely used ones may be worth removing.', 'multisite-tools' ),
 			'unused'   => __( 'Tags with no published posts, including tags used only on drafts or scheduled posts. They\'re candidates for deleting.', 'multisite-tools' ),
 		);
@@ -221,7 +231,7 @@ class MST_Tag_Alignment {
 
 		$this->render_pagination( $paged, $pages );
 		?>
-		<table class="widefat mst-tags">
+		<table class="widefat mst-tags mst-tags-report">
 			<thead>
 				<tr>
 					<th scope="col"><?php esc_html_e( 'Tag', 'multisite-tools' ); ?></th>
@@ -353,6 +363,287 @@ class MST_Tag_Alignment {
 		if ( reset( $totals ) > next( $totals ) ) {
 			echo '<span class="mst-flag mst-flag-most">' . esc_html__( 'Top row is most used', 'multisite-tools' ) . '</span>';
 		}
+
+		printf(
+			'<br><a href="%s" class="button button-small">%s</a>',
+			esc_url( $this->url( array( 'view' => 'merge', 'tags' => array_map( 'rawurlencode', array_map( 'strval', array_keys( $item['slugs'] ) ) ) ) ) ),
+			esc_html__( 'Merge…', 'multisite-tools' )
+		);
+	}
+
+	/**
+	 * Confirmation screen for merging a group of variants: choose the slug
+	 * to keep, see each site's tags, then merge.
+	 *
+	 * @param array<string, object[]> $tags  Every tag on the compared sites.
+	 * @param string[]                $slugs The group to merge.
+	 * @param array<int, array>       $all   Every active site's details.
+	 */
+	private function render_merge( $tags, $slugs, $all ) {
+		$group = array_intersect_key( $tags, array_flip( $slugs ) );
+		$back  = $this->url( array( 'view' => 'variants' ) );
+
+		uasort(
+			$group,
+			function ( $a, $b ) {
+				return $this->total( $b ) <=> $this->total( $a );
+			}
+		);
+
+		$sites = array();
+		foreach ( $group as $slug => $terms ) {
+			foreach ( $terms as $site_id => $term ) {
+				$sites[ $site_id ][ $slug ] = $term;
+			}
+		}
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'Merge Tags', 'multisite-tools' ); ?></h1>
+			<?php $this->print_styles(); ?>
+
+			<?php if ( count( $group ) < 2 ) : ?>
+				<p><?php esc_html_e( 'These tags no longer exist, or there\'s only one of them left on the compared sites.', 'multisite-tools' ); ?></p>
+				<p><a href="<?php echo esc_url( $back ); ?>"><?php esc_html_e( '← Back to Variants', 'multisite-tools' ); ?></a></p>
+			<?php else : ?>
+				<form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=' . self::MERGE_ACTION ) ); ?>">
+					<?php wp_nonce_field( self::MERGE_ACTION ); ?>
+					<?php foreach ( array_keys( $sites ) as $site_id ) : ?>
+						<input type="hidden" name="sites[]" value="<?php echo esc_attr( $site_id ); ?>">
+					<?php endforeach; ?>
+
+					<h2><?php esc_html_e( 'Tag to keep', 'multisite-tools' ); ?></h2>
+					<fieldset>
+						<?php foreach ( $group as $slug => $terms ) : ?>
+							<input type="hidden" name="tags[]" value="<?php echo esc_attr( $slug ); ?>">
+							<p>
+								<label>
+									<input type="radio" name="keep" value="<?php echo esc_attr( $slug ); ?>" <?php checked( array_key_first( $group ), $slug ); ?>>
+									<strong><?php echo esc_html( reset( $terms )->name ); ?></strong>
+									<code><?php echo esc_html( rawurldecode( $slug ) ); ?></code>
+									<span class="mst-muted">
+										<?php
+										/* translators: 1: number of posts, 2: number of sites */
+										echo esc_html( sprintf( __( '%1$s posts on %2$s sites', 'multisite-tools' ), number_format_i18n( $this->total( $terms ) ), number_format_i18n( count( $terms ) ) ) );
+										?>
+									</span>
+								</label>
+							</p>
+						<?php endforeach; ?>
+					</fieldset>
+
+					<h2><?php esc_html_e( 'Sites affected', 'multisite-tools' ); ?></h2>
+					<table class="widefat striped mst-tags">
+						<thead>
+							<tr>
+								<th scope="col"><?php esc_html_e( 'Site', 'multisite-tools' ); ?></th>
+								<th scope="col"><?php esc_html_e( 'Tags in this group', 'multisite-tools' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php foreach ( $sites as $site_id => $terms ) : ?>
+								<tr>
+									<td><?php echo MST_Sites::swatch( $site_id ) . esc_html( $all[ $site_id ]['name'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+									<td>
+										<ul class="mst-tag-sites">
+											<?php foreach ( $terms as $slug => $term ) : ?>
+												<li>
+													<?php echo esc_html( $term->name ); ?>
+													<code><?php echo esc_html( rawurldecode( $slug ) ); ?></code>
+													<span class="mst-muted">
+														<?php
+														/* translators: %s: number of posts */
+														echo esc_html( sprintf( _n( '(%s post)', '(%s posts)', $term->count, 'multisite-tools' ), number_format_i18n( $term->count ) ) );
+														?>
+													</span>
+												</li>
+											<?php endforeach; ?>
+										</ul>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+
+					<div class="notice notice-warning inline">
+						<p><?php esc_html_e( 'On each site, posts with any of the other tags get the kept tag instead, and the other tags are deleted. A site without the kept tag gets it by renaming its most used tag in the group, which keeps that tag\'s description. Archive links for the deleted slugs (e.g. /tag/old-slug/) will stop working. There\'s no undo.', 'multisite-tools' ); ?></p>
+					</div>
+
+					<p class="submit">
+						<button type="submit" class="button button-primary"><?php esc_html_e( 'Merge tags', 'multisite-tools' ); ?></button>
+						<a href="<?php echo esc_url( $back ); ?>" class="button"><?php esc_html_e( 'Cancel', 'multisite-tools' ); ?></a>
+					</p>
+				</form>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * The result of a merge, after handle_merge() redirects back.
+	 */
+	private function render_merge_notice() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- display only.
+		if ( ! isset( $_GET['merged'] ) ) {
+			return;
+		}
+
+		$merged = absint( $_GET['merged'] );
+		$sites  = absint( $_GET['merged_sites'] ?? 0 );
+		$failed = absint( $_GET['merge_failed'] ?? 0 );
+		// phpcs:enable
+
+		if ( $merged ) {
+			printf(
+				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+				esc_html(
+					sprintf(
+						/* translators: 1: number of tags, 2: number of sites */
+						_n( 'Merged %1$s tag on %2$s sites.', 'Merged %1$s tags on %2$s sites.', $merged, 'multisite-tools' ),
+						number_format_i18n( $merged ),
+						number_format_i18n( $sites )
+					)
+				)
+			);
+		}
+
+		if ( $failed ) {
+			printf(
+				'<div class="notice notice-error is-dismissible"><p>%s</p></div>',
+				esc_html(
+					sprintf(
+						/* translators: %s: number of tags */
+						_n( '%s tag couldn\'t be merged. Check it on its site\'s Tags screen.', '%s tags couldn\'t be merged. Check them on their sites\' Tags screens.', $failed, 'multisite-tools' ),
+						number_format_i18n( $failed )
+					)
+				)
+			);
+		} elseif ( ! $merged ) {
+			echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'Nothing was merged: the tags no longer exist on those sites.', 'multisite-tools' ) . '</p></div>';
+		}
+	}
+
+	/**
+	 * Merges a group of tags into the kept slug on each of the given sites,
+	 * then returns to the Variants view.
+	 */
+	public function handle_merge() {
+		check_admin_referer( self::MERGE_ACTION );
+
+		if ( ! current_user_can( 'manage_network' ) ) {
+			wp_die( esc_html__( 'Sorry, you are not allowed to do that.', 'multisite-tools' ), 403 );
+		}
+
+		$keep   = (string) wp_unslash( $_POST['keep'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- looked up as a slug.
+		$slugs  = array_map( 'strval', (array) wp_unslash( $_POST['tags'] ?? array() ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$posted = array_map( 'absint', (array) wp_unslash( $_POST['sites'] ?? array() ) );
+		$active = array_map( 'intval', wp_list_pluck( MST_Sites::active(), 'blog_id' ) );
+		$sites  = array_intersect( $posted, $active );
+
+		if ( ! in_array( $keep, $slugs, true ) ) {
+			wp_die( esc_html__( 'Choose the tag to keep.', 'multisite-tools' ) );
+		}
+
+		// Find each site's tags first, so a site without the kept tag can be
+		// given the name the other sites use.
+		$found = array();
+		$names = array();
+		foreach ( $sites as $site_id ) {
+			switch_to_blog( $site_id );
+			foreach ( $slugs as $slug ) {
+				$term = get_term_by( 'slug', $slug, 'post_tag' );
+				if ( $term instanceof WP_Term ) {
+					$found[ $site_id ][ $slug ] = $term;
+					if ( $slug === $keep ) {
+						$names[ $term->name ] = ( $names[ $term->name ] ?? 0 ) + $term->count;
+					}
+				}
+			}
+			restore_current_blog();
+		}
+
+		arsort( $names );
+		$name   = $names ? (string) array_key_first( $names ) : null;
+		$merged = 0;
+		$failed = 0;
+		$done   = 0;
+
+		foreach ( $found as $site_id => $terms ) {
+			if ( count( $terms ) < 2 && isset( $terms[ $keep ] ) ) {
+				continue;
+			}
+
+			switch_to_blog( $site_id );
+
+			$kept = $terms[ $keep ] ?? null;
+			unset( $terms[ $keep ] );
+
+			if ( ! $kept ) {
+				// Rename the most used variant to the kept slug.
+				uasort(
+					$terms,
+					function ( $a, $b ) {
+						return $b->count <=> $a->count;
+					}
+				);
+				$kept = array_shift( $terms );
+				$args = array( 'slug' => $keep );
+				if ( null !== $name ) {
+					$args['name'] = $name;
+				}
+				$renamed = wp_update_term( $kept->term_id, 'post_tag', wp_slash( $args ) );
+				if ( is_wp_error( $renamed ) ) {
+					$failed += 1 + count( $terms );
+					restore_current_blog();
+					continue;
+				}
+				++$merged;
+			}
+
+			foreach ( $terms as $term ) {
+				// Gives every post with the old tag the kept one, then deletes it.
+				$deleted = wp_delete_term(
+					$term->term_id,
+					'post_tag',
+					array(
+						'default'       => $kept->term_id,
+						'force_default' => true,
+					)
+				);
+				if ( true === $deleted ) {
+					++$merged;
+				} else {
+					++$failed;
+				}
+			}
+
+			restore_current_blog();
+			++$done;
+		}
+
+		// Related posts and Network digest show tags, and term changes don't
+		// fire the post hooks that clear them.
+		foreach ( array( 'MST_Related_Posts', 'MST_Network_Digest' ) as $class ) {
+			$module = Multisite_Tools::module( $class );
+			if ( $module ) {
+				$module->flush();
+			}
+		}
+
+		$back = wp_get_referer();
+		$back = $back ? $back : network_admin_url( 'sites.php?page=' . self::PAGE );
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'view'         => 'variants',
+					'merged'       => $merged,
+					'merged_sites' => $done,
+					'merge_failed' => $failed,
+				),
+				remove_query_arg( array( 'tags', 'merged', 'merged_sites', 'merge_failed', 'paged' ), $back )
+			)
+		);
+		exit;
 	}
 
 	/**
@@ -811,8 +1102,8 @@ class MST_Tag_Alignment {
 			.mst-tags td, .mst-tags th { vertical-align: top; }
 			.mst-tags .num { text-align: right; }
 			.mst-tags code { background: none; padding: 0; }
-			.mst-tags tbody:nth-of-type(odd) { background: #f6f7f7; }
-			.mst-tags tbody + tbody tr:first-child td { border-top: 1px solid #dcdcde; }
+			.mst-tags-report tbody:nth-of-type(odd) { background: #f6f7f7; }
+			.mst-tags-report tbody + tbody tr:first-child td { border-top: 1px solid #dcdcde; }
 			.mst-tag-sites { margin: 0; }
 			.mst-tag-sites li { margin: 0 0 2px; }
 			.mst-tag-sites .mst-edit { margin-left: 4px; }
