@@ -108,6 +108,8 @@ Publishes scheduled posts that WordPress missed. WP-Cron only runs on a site whe
 - **Scan:** a visit to any site, at most every 5 minutes network-wide, checks every active site for posts more than a minute overdue (one UNION query per 100 sites) and pings each late site's `wp-cron.php` in the background, without slowing the visit.
 - **Publish:** whenever a site's cron runs (pinged or natural), it publishes up to 20 of its own overdue posts. This also catches posts whose scheduled event was lost, which cron alone never publishes. Publishing on the site itself means plugins active only on that site (auto-posters, newsletters) still see the post go live.
 
+- **Log:** each site keeps a log of the posts it published this way that were more than 5 minutes late or had lost their schedule (its last 20, for up to 90 days, in its `mst_missed_schedule_log` option). The **Missed schedules** widget on Network Admin › Dashboard lists the sites that missed most often in the last 30 days, each linking to its scheduled posts, and the 10 latest fixes, with each post's site, how late it was and when it was published, linking to the post. **Schedule lost** marks a post whose scheduled publish event was missing, which WordPress would never have published on its own. A site that keeps turning up is rarely visited or has cron trouble.
+
 It still needs *some* traffic somewhere on the network, and the host must allow WordPress to make requests to its own sites (the same requirement as normal WP-Cron). Server cron is more reliable where available.
 
 ### Network digest

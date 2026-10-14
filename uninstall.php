@@ -18,13 +18,14 @@ delete_site_option( 'network_digest_posts_per_source' );
 delete_metadata( 'user', 0, 'mst_last_login', '', true );
 
 // Per-site settings: Default author, Social graph's default image, Post type
-// inventory's snapshot, Related posts' settings and cached lists, and Copy to
-// site's links between copies and originals.
+// inventory's snapshot, Related posts' settings and cached lists, Missed
+// schedule fixer's log, and Copy to site's links between copies and originals.
 foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $mst_site_id ) {
 	delete_blog_option( $mst_site_id, 'dpa_default_author' );
 	delete_blog_option( $mst_site_id, 'mst_social_image' );
 	delete_blog_option( $mst_site_id, 'mst_post_types' );
 	delete_blog_option( $mst_site_id, 'mst_related_posts' );
+	delete_blog_option( $mst_site_id, 'mst_missed_schedule_log' );
 
 	switch_to_blog( $mst_site_id );
 	delete_metadata( 'post', 0, '_mst_related_posts', '', true );
